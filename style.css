@@ -720,3 +720,70 @@ select:disabled {
     height: 170px;
   }
 }
+
+/* v6: 상/중/하 평가 기준 표시 */
+.score-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 10px;
+}
+
+.weight-badge,
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.weight-badge {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.score-badge {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.criteria-box {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 12px;
+}
+
+.criteria-box div {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.criteria-box strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  border-radius: 999px;
+  background: #14213d;
+  color: #fff;
+  font-size: 12px;
+}
+
+.segmented-control label.middle-option:has(input:checked) {
+  border-color: #f59e0b;
+  background: #f59e0b;
+  color: white;
+}

@@ -1,5 +1,5 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v5
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v6
  *
  * 핵심 구조
  * - 화면: GitHub Pages
@@ -9,68 +9,99 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx385gEdW9HIHZh7UoN0UPiNl8eOwhZRcXJYJ5GFCOjkOPXOXzDbkNutfa7COADccc8/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 
 const EVALUATION_ITEMS = [
   {
     id: 'q01',
-    title: '매장 내 기계·기구 및 설비의 안전·보건 점검',
-    desc: '리프트, 승강기, 소방설비 등 기계·기구 및 설비의 점검·유지보수 이력 확인',
-    example: '예: 매월 리프트 점검 실행내역 확인(외주업체) / 00월 00일 유지보수 완료'
+    title: '기계·기구 또는 설비의 안전·보건 점검 및 이상 유무 확인',
+    desc: '공통 항목: 멀티콘센트, 전등, 자동문, 에어컨, 사다리, 소화기 등 / 특수 항목: 리프트, 소방점검, 승강기점검, 전기점검 등',
+    weight: '중',
+    scores: { high: 10, mid: 5, low: 0 },
+    criteria: {
+      high: '해당 매장 보유 설비의 점검 또는 유지보수 이력 확인 가능',
+      mid: '점검은 실시했으나 확인자료 일부 부족',
+      low: '점검자료 없음 또는 이상사항 미조치'
+    },
+    note: '해당 매장에 있는 설비 기준으로 평가'
   },
   {
     id: 'q02',
-    title: '매장 근로자들의 작업복·보호구 및 방호장치 점검과 교육',
-    desc: '안전모, 장갑 등 보호구 착용·사용 지도 및 교육 실시 여부',
-    example: '예: 사다리 작업 시 안전모 착용 여부 상시 교육 / 보호구 착용 안내 실시'
+    title: '작업복·보호구 및 방호장치 점검과 착용·사용 교육·지도',
+    desc: '보호구 지급대장, 안전모 상태(턱끈 등), TBM 실시, 신규채용 시 교육 실시 여부 확인',
+    weight: '중',
+    scores: { high: 10, mid: 5, low: 0 },
+    criteria: {
+      high: '보호구 지급대장 6개월 + TBM 실시 + 신규채용 시 교육 실시 완료',
+      mid: '보호구 지급대장 6개월, TBM 실시, 신규채용 시 교육 중 1가지 미흡',
+      low: '보호구 지급대장과 교육·지도 기록 모두 없음'
+    },
+    note: '보호구 지급대장 서류 필요'
   },
   {
     id: 'q03',
-    title: '매장 산업재해 보고 및 응급조치 활동',
-    desc: '산업재해 발생 시 보고, 응급조치, 산업재해조사표 작성 등 이행 여부',
-    example: '예: 000매장 넘어짐 사고 발생 건 산업재해조사표 기한 내 작성 완료'
+    title: '산업재해 보고 및 응급조치',
+    desc: '산업재해 발생 시 즉시 보고, 응급조치, 산업재해조사표 등 관련 서류 제출 여부 확인',
+    weight: '상',
+    scores: { high: 15, mid: 8, low: 0 },
+    criteria: {
+      high: '산업재해 미발생 또는 발생 건 전부 즉시 보고 및 조치 완료',
+      mid: '보고·조치는 했으나 증빙자료 일부 누락',
+      low: '미보고 또는 지연보고 1건 이상 발생'
+    },
+    note: '지연보고 발생 시 하'
   },
   {
     id: 'q04',
-    title: '매장 정리정돈 및 통로 확보 감독',
+    title: '작업장 정리·정돈 및 통로 확보 확인·감독',
     desc: '순회점검일지 작성, 통로·비상통로 확보, 후방공간 정리정돈 확인',
-    example: '예: 작성한 순회점검일지 확인 / 통로 적재 및 후방공간 정리정돈 지도'
+    weight: '중',
+    scores: { high: 10, mid: 5, low: 0 },
+    criteria: {
+      high: '순회점검일지 월 4회 이상 작성',
+      mid: '월 1~3회 작성한 월이 있음',
+      low: '순회점검일지 미작성 월이 있음'
+    },
+    note: '월 4회 이상 시 상'
   },
   {
     id: 'q05',
-    title: '안전보건관리자 등의 지도·조언에 대한 협조',
-    desc: '안전보건팀 점검, 개선요청, 지도·조언 사항에 대한 협조 및 조치',
-    example: '예: 안전보건팀 점검 후 개선조치 요청사항 조치 완료'
+    title: '안전·보건관리자 또는 기관에 대한 협조',
+    desc: '안전보건팀 요청사항, 비상대피훈련, 개선요청 사항에 대한 협조 및 이행 여부 확인',
+    weight: '중',
+    scores: { high: 10, mid: 5, low: 0 },
+    criteria: {
+      high: '비상대피훈련 결과보고 1건 이상 완료',
+      mid: '훈련은 실시했으나 결과보고 자료 일부 부족',
+      low: '훈련 미실시 또는 안전보건팀 요청사항 미이행'
+    },
+    note: '반기 1회 기준'
   },
   {
     id: 'q06',
-    title: '매장 위험성평가 참여 및 개선조치 시행',
-    desc: '정기·수시 위험성평가 참여, 유해·위험요인 개선조치 이행',
-    example: '예: 해당 반기 위험성평가 관리 매장 전체 완료 / 개선조치 이행 확인'
+    title: '위험성평가 참여 및 실행',
+    desc: '위험성평가 참여자료, 위험요인 확인, 개선조치 실행 내역 확인',
+    weight: '상',
+    scores: { high: 15, mid: 8, low: 0 },
+    criteria: {
+      high: '위험성평가 참여자료 및 개선조치 완료 내역 확인',
+      mid: '위험성평가는 참여했으나 개선조치 완료 내역 없음',
+      low: '위험성평가 미참여 또는 개선조치 미실행'
+    },
+    note: '개선사항 없으면 참여자료만으로 상'
   },
   {
     id: 'q07',
-    title: '매장 비상상황 발생에 대한 대응능력',
-    desc: '비상대응훈련 실시, 비상연락체계 확인, 대피 및 초기대응 역량 확보',
-    example: '예: 해당 반기 비상대응훈련 관리 매장 전체 완료 / 비상연락체계 확인'
-  },
-  {
-    id: 'q08',
-    title: '매장 업무 시작 전 안전한 작업환경 조성',
-    desc: '작업 전 안전교육, TBM, 건강상태 확인, 위험요인 전파 등',
-    example: '예: 작업 시작 전 안전교육 실시 / TBM을 통한 금일 위험요인 전파'
-  },
-  {
-    id: 'q09',
-    title: '안전보건교육 참여 및 지원',
-    desc: '관리감독자교육, 정기안전보건교육, 신규입사자교육 참여·지원·독려',
-    example: '예: 관리감독자교육 이수 완료 / 정기안전보건교육 및 신규입사자교육 이수현황 확인·독려'
-  },
-  {
-    id: 'q10',
     title: '법규 및 지침 준수 여부',
-    desc: '안전보건 사내규정, 지침, 공지사항 등 확인 및 준수',
-    example: '예: 안전보건 사내규정 및 사내 게시판 공지사항 확인·전파'
+    desc: '매장 안전보건 절차서, 실행문서, 안전보건서류, 위험표지 등의 게시·비치·보관 상태 확인',
+    weight: '하',
+    scores: { high: 5, mid: 3, low: 0 },
+    criteria: {
+      high: '안전보건 문서·서류·표지 보관/게시 상태 확인 가능',
+      mid: '일부 자료 누락 또는 최신화 필요',
+      low: '확인 가능한 안전보건 문서·서류·표지 없음'
+    },
+    note: '임명장, 법령요지, 안전보건방침, 위험표지 등'
   }
 ];
 
@@ -123,8 +154,8 @@ const DOCUMENT_FILE_FIELDS = [
 const EVIDENCE_FILE_FIELDS = EVALUATION_ITEMS.map(function (item) {
   return {
     name: 'evidence_' + item.id,
-    label: '미흡 증빙사진 - ' + item.title,
-    hint: '미흡으로 선택한 경우 필요 시 현장 사진 또는 관련 자료를 첨부해주세요.',
+    label: '판단 증빙사진 - ' + item.title,
+    hint: '중 또는 하로 선택한 경우 필요 시 현장 사진 또는 관련 자료를 첨부해주세요.',
     required: false,
     evidenceOnly: true,
     itemId: item.id
@@ -187,7 +218,7 @@ form.addEventListener('submit', async function (event) {
   if (!validateAppsScriptUrl()) return;
   if (!validateOrganizationLoaded()) return;
   if (!validateBasicRequired()) return;
-  if (!validateInsufficientReasons()) return;
+  if (!validateJudgementReasons()) return;
   if (!validateRequiredAttachments()) return;
   if (!validateAccidentAttachment()) return;
   if (!validateSignature()) return;
@@ -228,27 +259,37 @@ form.addEventListener('submit', async function (event) {
 function renderEvaluationItems() {
   evaluationItemsContainer.innerHTML = EVALUATION_ITEMS.map(function (item, index) {
     const evidenceField = 'evidence_' + item.id;
+    const scoreText = `상 ${item.scores.high}점 / 중 ${item.scores.mid}점 / 하 ${item.scores.low}점`;
 
     return `
       <div class="check-item" data-item-card="${item.id}">
         <div class="item-title">${index + 1}. ${escapeHtml(item.title)}</div>
         <p class="item-desc">${escapeHtml(item.desc)}</p>
-        <div class="item-example">${escapeHtml(item.example || '')}</div>
+        <div class="score-badge-row">
+          <span class="weight-badge">비중 ${escapeHtml(item.weight)}</span>
+          <span class="score-badge">${escapeHtml(scoreText)}</span>
+        </div>
+        <div class="criteria-box">
+          <div><strong>상</strong><span>${escapeHtml(item.criteria.high)}</span></div>
+          <div><strong>중</strong><span>${escapeHtml(item.criteria.mid)}</span></div>
+          <div><strong>하</strong><span>${escapeHtml(item.criteria.low)}</span></div>
+        </div>
+        <div class="item-example">비고: ${escapeHtml(item.note || '')}</div>
 
         <div class="segmented-control" role="radiogroup" aria-label="${escapeHtml(item.title)} 평가결과">
-          <label><input type="radio" name="${item.id}_result" value="양호" required checked /> 양호</label>
-          <label class="insufficient-option"><input type="radio" name="${item.id}_result" value="미흡" /> 미흡</label>
-          <label><input type="radio" name="${item.id}_result" value="N/A" /> N/A</label>
+          <label><input type="radio" name="${item.id}_result" value="상" required checked /> 상</label>
+          <label class="middle-option"><input type="radio" name="${item.id}_result" value="중" /> 중</label>
+          <label class="insufficient-option"><input type="radio" name="${item.id}_result" value="하" /> 하</label>
         </div>
 
         <div class="reason-panel" data-reason-panel="${item.id}">
           <label>
-            미흡사유 <span class="required-mark">*</span>
-            <textarea name="${item.id}_reason" rows="3" placeholder="미흡으로 판단한 사유를 작성해주세요."></textarea>
+            판단사유 <span class="required-mark">*</span>
+            <textarea name="${item.id}_reason" rows="3" placeholder="중 또는 하로 판단한 사유를 작성해주세요."></textarea>
           </label>
           ${createFilePickerHtml({
             name: evidenceField,
-            label: '미흡 증빙사진',
+            label: '판단 증빙사진',
             hint: '필요 시 현장 사진 또는 관련 자료를 첨부해주세요.',
             required: false,
             exampleSrc: ''
@@ -314,17 +355,18 @@ function applyEvaluationItemState(itemId) {
   const panel = form.querySelector(`[data-reason-panel="${itemId}"]`);
   const card = form.querySelector(`[data-item-card="${itemId}"]`);
   const reason = form.querySelector(`textarea[name="${itemId}_reason"]`);
-  const isInsufficient = checked && checked.value === '미흡';
+  const needsReason = checked && (checked.value === '중' || checked.value === '하');
+  const isLow = checked && checked.value === '하';
 
-  if (panel) panel.classList.toggle('active', !!isInsufficient);
-  if (card) card.classList.toggle('insufficient', !!isInsufficient);
+  if (panel) panel.classList.toggle('active', !!needsReason);
+  if (card) card.classList.toggle('insufficient', !!isLow);
 
   if (reason) {
-    reason.required = !!isInsufficient;
-    if (!isInsufficient) reason.value = '';
+    reason.required = !!needsReason;
+    if (!needsReason) reason.value = '';
   }
 
-  if (!isInsufficient) {
+  if (!needsReason) {
     clearSelectedFile('evidence_' + itemId);
   }
 }
@@ -645,8 +687,12 @@ async function buildPayload() {
       no: index + 1,
       id: item.id,
       title: item.title,
-      result: formData.get(`${item.id}_result`) || '양호',
-      reason: formData.get(`${item.id}_reason`) || ''
+      result: formData.get(`${item.id}_result`) || '상',
+      reason: formData.get(`${item.id}_reason`) || '',
+      weight: item.weight,
+      scoreHigh: item.scores.high,
+      scoreMid: item.scores.mid,
+      scoreLow: item.scores.low
     };
   });
 
@@ -671,10 +717,11 @@ async function buildPayload() {
     items: items,
     attachments: attachments,
     score: scoreInfo.score,
-    goodCount: scoreInfo.goodCount,
-    insufficientCount: scoreInfo.insufficientCount,
-    naCount: scoreInfo.naCount,
-    applicableCount: scoreInfo.applicableCount
+    rawScore: scoreInfo.rawScore,
+    maxScore: scoreInfo.maxScore,
+    highCount: scoreInfo.highCount,
+    midCount: scoreInfo.midCount,
+    lowCount: scoreInfo.lowCount
   };
 }
 
@@ -772,20 +819,38 @@ function resizeImageToDataUrl(file, maxSize, quality) {
 }
 
 function calculateScore(items) {
-  let goodCount = 0;
-  let insufficientCount = 0;
-  let naCount = 0;
+  let highCount = 0;
+  let midCount = 0;
+  let lowCount = 0;
+  let rawScore = 0;
+  let maxScore = 0;
 
-  items.forEach(function (item) {
-    if (item.result === '양호') goodCount += 1;
-    if (item.result === '미흡') insufficientCount += 1;
-    if (item.result === 'N/A') naCount += 1;
+  const itemMeta = {};
+  EVALUATION_ITEMS.forEach(function (item) {
+    itemMeta[item.id] = item;
   });
 
-  const applicableCount = items.length - naCount;
-  const score = applicableCount === 0 ? 0 : Math.round((goodCount / applicableCount) * 1000) / 10;
+  items.forEach(function (item) {
+    const meta = itemMeta[item.id];
+    if (!meta) return;
 
-  return { score, goodCount, insufficientCount, naCount, applicableCount };
+    maxScore += meta.scores.high;
+
+    if (item.result === '상') {
+      highCount += 1;
+      rawScore += meta.scores.high;
+    } else if (item.result === '중') {
+      midCount += 1;
+      rawScore += meta.scores.mid;
+    } else if (item.result === '하') {
+      lowCount += 1;
+      rawScore += meta.scores.low;
+    }
+  });
+
+  const score = maxScore === 0 ? 0 : Math.round((rawScore / maxScore) * 1000) / 10;
+
+  return { score, rawScore, maxScore, highCount, midCount, lowCount };
 }
 
 function postPayloadByHiddenForm(payload) {
@@ -955,19 +1020,18 @@ function validateBasicRequired() {
   return true;
 }
 
-function validateInsufficientReasons() {
+function validateJudgementReasons() {
   for (const item of EVALUATION_ITEMS) {
     const result = form.querySelector(`input[name="${item.id}_result"]:checked`);
     const reason = form.querySelector(`textarea[name="${item.id}_reason"]`);
 
-    if (result && result.value === '미흡' && reason && reason.value.trim() === '') {
-      applyEvaluationItemState(item.id);
-      reason.focus();
-      setResult('error', `"${item.title}" 항목이 미흡인 경우 미흡사유를 작성해야 합니다.`);
+    if (result && (result.value === '중' || result.value === '하') && reason && reason.value.trim() === '') {
+      const card = form.querySelector(`[data-item-card="${item.id}"]`);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setResult('error', `"${item.title}" 항목이 ${result.value}인 경우 판단사유를 작성해야 합니다.`);
       return false;
     }
   }
-
   return true;
 }
 
@@ -1014,7 +1078,7 @@ function resetFormAfterSuccess() {
     if (span) span.textContent = '';
   });
   EVALUATION_ITEMS.forEach(function (item) {
-    const good = form.querySelector(`input[name="${item.id}_result"][value="양호"]`);
+    const good = form.querySelector(`input[name="${item.id}_result"][value="상"]`);
     if (good) good.checked = true;
     applyEvaluationItemState(item.id);
   });
