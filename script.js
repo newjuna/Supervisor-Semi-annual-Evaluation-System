@@ -1,5 +1,5 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v6
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v7
  *
  * 핵심 구조
  * - 화면: GitHub Pages
@@ -9,73 +9,66 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw-zPG_9vPNeJINixD3dbBq4G7qSS0iP0NQF4OH42MTC3NouKQ_rPeoDcE4cryS-87L/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 
 const EVALUATION_ITEMS = [
   {
     id: 'q01',
     title: '기계·기구 또는 설비의 안전·보건 점검 및 이상 유무 확인',
-    desc: '공통 항목: 멀티콘센트, 전등, 자동문, 에어컨, 사다리, 소화기 등 / 특수 항목: 리프트, 소방점검, 승강기점검, 전기점검 등',
+    desc: '멀티콘센트, 전등, 자동문, 에어컨, 사다리, 소화기, 리프트, 승강기, 소방설비 등 해당 매장에 있는 설비 기준으로 확인',
     weight: '중',
-    scores: { high: 10, mid: 5, low: 0 },
+    scores: { high: 10, mid: null, low: 0 },
     criteria: {
       high: '해당 매장 보유 설비의 점검 또는 유지보수 이력 확인 가능',
-      mid: '점검은 실시했으나 확인자료 일부 부족',
       low: '점검자료 없음 또는 이상사항 미조치'
     },
-    note: '해당 매장에 있는 설비 기준으로 평가'
+    alwaysEvidence: true,
+    evidenceHint: '점검표, 유지보수 이력, 설비 점검 사진 등을 첨부할 수 있습니다.'
   },
   {
     id: 'q02',
     title: '작업복·보호구 및 방호장치 점검과 착용·사용 교육·지도',
-    desc: '보호구 지급대장, 안전모 상태(턱끈 등), TBM 실시, 신규채용 시 교육 실시 여부 확인',
+    desc: '보호구 지급대장, TBM 실시, 신규채용 시 교육 실시 여부 확인',
     weight: '중',
     scores: { high: 10, mid: 5, low: 0 },
     criteria: {
-      high: '보호구 지급대장 6개월 + TBM 실시 + 신규채용 시 교육 실시 완료',
+      high: '보호구 지급대장 6개월, TBM 실시, 신규채용 시 교육 실시 완료',
       mid: '보호구 지급대장 6개월, TBM 실시, 신규채용 시 교육 중 1가지 미흡',
       low: '보호구 지급대장과 교육·지도 기록 모두 없음'
-    },
-    note: '보호구 지급대장 서류 필요'
+    }
   },
   {
     id: 'q03',
     title: '산업재해 보고 및 응급조치',
     desc: '산업재해 발생 시 즉시 보고, 응급조치, 산업재해조사표 등 관련 서류 제출 여부 확인',
     weight: '상',
-    scores: { high: 15, mid: 8, low: 0 },
+    scores: { high: 15, mid: null, low: 0 },
     criteria: {
-      high: '산업재해 미발생 또는 발생 건 전부 즉시 보고 및 조치 완료',
-      mid: '보고·조치는 했으나 증빙자료 일부 누락',
-      low: '미보고 또는 지연보고 1건 이상 발생'
-    },
-    note: '지연보고 발생 시 하'
+      high: '산업재해 발생 건 전부 즉시 보고 및 조치 완료',
+      low: '미보고 또는 지연 보고가 1건이라도 발생'
+    }
   },
   {
     id: 'q04',
     title: '작업장 정리·정돈 및 통로 확보 확인·감독',
     desc: '순회점검일지 작성, 통로·비상통로 확보, 후방공간 정리정돈 확인',
     weight: '중',
-    scores: { high: 10, mid: 5, low: 0 },
+    scores: { high: 10, mid: null, low: 0 },
     criteria: {
-      high: '순회점검일지 월 4회 이상 작성',
-      mid: '월 1~3회 작성한 월이 있음',
+      high: '순회점검표 월 4회 이상 작성',
       low: '순회점검일지 미작성 월이 있음'
-    },
-    note: '월 4회 이상 시 상'
+    }
   },
   {
     id: 'q05',
     title: '안전·보건관리자 또는 기관에 대한 협조',
     desc: '안전보건팀 요청사항, 비상대피훈련, 개선요청 사항에 대한 협조 및 이행 여부 확인',
     weight: '중',
-    scores: { high: 10, mid: 5, low: 0 },
+    scores: { high: 10, mid: null, low: 0 },
     criteria: {
       high: '비상대피훈련 결과보고 1건 이상 완료',
-      mid: '훈련은 실시했으나 결과보고 자료 일부 부족',
-      low: '훈련 미실시 또는 안전보건팀 요청사항 미이행'
-    },
-    note: '반기 1회 기준'
+      low: '훈련은 실시했으나 결과보고 자료 없음'
+    }
   },
   {
     id: 'q06',
@@ -87,32 +80,26 @@ const EVALUATION_ITEMS = [
       high: '위험성평가 참여자료 및 개선조치 완료 내역 확인',
       mid: '위험성평가는 참여했으나 개선조치 완료 내역 없음',
       low: '위험성평가 미참여 또는 개선조치 미실행'
-    },
-    note: '개선사항 없으면 참여자료만으로 상'
+    }
   },
   {
     id: 'q07',
     title: '법규 및 지침 준수 여부',
-    desc: '매장 안전보건 절차서, 실행문서, 안전보건서류, 위험표지 등의 게시·비치·보관 상태 확인',
+    desc: 'ISO 가이드 PDF를 확인한 후 매장 안전보건 절차서, 실행문서, 안전보건서류, 위험표지의 게시·비치·보관 상태 확인',
     weight: '하',
     scores: { high: 5, mid: 3, low: 0 },
     criteria: {
-      high: '안전보건 문서·서류·표지 보관/게시 상태 확인 가능',
+      high: '안전보건 절차서·실행문서·서류·표지 보관/게시 상태 확인 가능',
       mid: '일부 자료 누락 또는 최신화 필요',
       low: '확인 가능한 안전보건 문서·서류·표지 없음'
     },
-    note: '임명장, 법령요지, 안전보건방침, 위험표지 등'
+    guide: {
+      href: './ISO가이드.pdf',
+      label: 'ISO 가이드 PDF 보기'
+    }
   }
 ];
-
 const DOCUMENT_FILE_FIELDS = [
-  {
-    name: 'file_equipment',
-    label: '기계·기구 및 설비 점검 / 유지보수 이력',
-    hint: '예: 리프트, 승강기, 소방설비 등 점검·유지보수 이력',
-    required: false,
-    exampleSrc: 'assets/examples/example_equipment.jpg'
-  },
   {
     name: 'file_riskAssessment',
     label: '위험성평가 자료',
@@ -150,7 +137,6 @@ const DOCUMENT_FILE_FIELDS = [
     exampleSrc: 'assets/examples/example_accident_report.jpg'
   }
 ];
-
 const EVIDENCE_FILE_FIELDS = EVALUATION_ITEMS.map(function (item) {
   return {
     name: 'evidence_' + item.id,
@@ -259,47 +245,79 @@ form.addEventListener('submit', async function (event) {
 function renderEvaluationItems() {
   evaluationItemsContainer.innerHTML = EVALUATION_ITEMS.map(function (item, index) {
     const evidenceField = 'evidence_' + item.id;
-    const scoreText = `상 ${item.scores.high}점 / 중 ${item.scores.mid}점 / 하 ${item.scores.low}점`;
+    const hasMid = item.scores.mid !== null && item.scores.mid !== undefined && item.scores.mid !== '';
+    const scoreText = hasMid
+      ? `상 ${item.scores.high}점 / 중 ${item.scores.mid}점 / 하 ${item.scores.low}점`
+      : `상 ${item.scores.high}점 / 하 ${item.scores.low}점`;
+
+    const criteriaRows = [
+      `<div><strong>상</strong><span>${escapeHtml(item.criteria.high)}</span></div>`,
+      hasMid ? `<div><strong>중</strong><span>${escapeHtml(item.criteria.mid)}</span></div>` : '',
+      `<div><strong>하</strong><span>${escapeHtml(item.criteria.low)}</span></div>`
+    ].join('');
+
+    const guideHtml = item.guide
+      ? `<div class="guide-link-box"><a class="ghost-btn" href="${escapeHtml(item.guide.href)}" target="_blank" rel="noopener">${escapeHtml(item.guide.label)}</a></div>`
+      : '';
+
+    const midOptionHtml = hasMid
+      ? `<label class="middle-option"><input type="radio" name="${item.id}_result" value="중" /> 중</label>`
+      : '';
+
+    const alwaysEvidenceHtml = item.alwaysEvidence
+      ? `<div class="always-evidence-panel">
+          <div class="attachment-title small-title">점검·유지보수 증빙사진</div>
+          <p class="attachment-hint">${escapeHtml(item.evidenceHint || '필요 시 관련 사진을 첨부해주세요.')}</p>
+          ${createFilePickerHtml({
+            name: evidenceField,
+            label: '판단 증빙사진 - ' + item.title,
+            hint: item.evidenceHint || '필요 시 관련 사진을 첨부해주세요.',
+            required: false,
+            exampleSrc: ''
+          })}
+        </div>`
+      : '';
+
+    const reasonEvidenceHtml = item.alwaysEvidence ? '' : createFilePickerHtml({
+      name: evidenceField,
+      label: '판단 증빙사진 - ' + item.title,
+      hint: '필요 시 현장 사진 또는 관련 자료를 첨부해주세요.',
+      required: false,
+      exampleSrc: ''
+    });
 
     return `
       <div class="check-item" data-item-card="${item.id}">
         <div class="item-title">${index + 1}. ${escapeHtml(item.title)}</div>
         <p class="item-desc">${escapeHtml(item.desc)}</p>
+        ${guideHtml}
         <div class="score-badge-row">
           <span class="weight-badge">비중 ${escapeHtml(item.weight)}</span>
           <span class="score-badge">${escapeHtml(scoreText)}</span>
         </div>
         <div class="criteria-box">
-          <div><strong>상</strong><span>${escapeHtml(item.criteria.high)}</span></div>
-          <div><strong>중</strong><span>${escapeHtml(item.criteria.mid)}</span></div>
-          <div><strong>하</strong><span>${escapeHtml(item.criteria.low)}</span></div>
+          ${criteriaRows}
         </div>
-        <div class="item-example">비고: ${escapeHtml(item.note || '')}</div>
 
-        <div class="segmented-control" role="radiogroup" aria-label="${escapeHtml(item.title)} 평가결과">
+        <div class="segmented-control ${hasMid ? 'has-mid' : 'no-mid'}" role="radiogroup" aria-label="${escapeHtml(item.title)} 평가결과">
           <label><input type="radio" name="${item.id}_result" value="상" required checked /> 상</label>
-          <label class="middle-option"><input type="radio" name="${item.id}_result" value="중" /> 중</label>
+          ${midOptionHtml}
           <label class="insufficient-option"><input type="radio" name="${item.id}_result" value="하" /> 하</label>
         </div>
+
+        ${alwaysEvidenceHtml}
 
         <div class="reason-panel" data-reason-panel="${item.id}">
           <label>
             판단사유 <span class="required-mark">*</span>
             <textarea name="${item.id}_reason" rows="3" placeholder="중 또는 하로 판단한 사유를 작성해주세요."></textarea>
           </label>
-          ${createFilePickerHtml({
-            name: evidenceField,
-            label: '판단 증빙사진',
-            hint: '필요 시 현장 사진 또는 관련 자료를 첨부해주세요.',
-            required: false,
-            exampleSrc: ''
-          })}
+          ${reasonEvidenceHtml}
         </div>
       </div>
     `;
   }).join('');
 }
-
 function renderAttachmentCards() {
   attachmentList.innerHTML = DOCUMENT_FILE_FIELDS.map(function (field) {
     const disabledClass = field.accidentOnly ? ' conditional-hidden' : '';
@@ -355,6 +373,7 @@ function applyEvaluationItemState(itemId) {
   const panel = form.querySelector(`[data-reason-panel="${itemId}"]`);
   const card = form.querySelector(`[data-item-card="${itemId}"]`);
   const reason = form.querySelector(`textarea[name="${itemId}_reason"]`);
+  const item = EVALUATION_ITEMS.find(function (entry) { return entry.id === itemId; });
   const needsReason = checked && (checked.value === '중' || checked.value === '하');
   const isLow = checked && checked.value === '하';
 
@@ -366,11 +385,10 @@ function applyEvaluationItemState(itemId) {
     if (!needsReason) reason.value = '';
   }
 
-  if (!needsReason) {
+  if (!needsReason && !(item && item.alwaysEvidence)) {
     clearSelectedFile('evidence_' + itemId);
   }
 }
-
 function bindCascadingOrgSelects() {
   headquarterSelect.addEventListener('change', function () {
     populateDepartments(headquarterSelect.value);
@@ -834,17 +852,22 @@ function calculateScore(items) {
     const meta = itemMeta[item.id];
     if (!meta) return;
 
-    maxScore += meta.scores.high;
+    const highScore = Number(meta.scores.high) || 0;
+    const midScore = meta.scores.mid === null || meta.scores.mid === undefined || meta.scores.mid === ''
+      ? null
+      : Number(meta.scores.mid) || 0;
+
+    maxScore += highScore;
 
     if (item.result === '상') {
       highCount += 1;
-      rawScore += meta.scores.high;
+      rawScore += highScore;
     } else if (item.result === '중') {
       midCount += 1;
-      rawScore += meta.scores.mid;
+      rawScore += midScore === null ? 0 : midScore;
     } else if (item.result === '하') {
       lowCount += 1;
-      rawScore += meta.scores.low;
+      rawScore += Number(meta.scores.low) || 0;
     }
   });
 
@@ -852,7 +875,6 @@ function calculateScore(items) {
 
   return { score, rawScore, maxScore, highCount, midCount, lowCount };
 }
-
 function postPayloadByHiddenForm(payload) {
   return new Promise(function (resolve, reject) {
     const iframeName = 'submitFrame_' + payload.submissionId;

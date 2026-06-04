@@ -721,7 +721,7 @@ select:disabled {
   }
 }
 
-/* v6: 상/중/하 평가 기준 표시 */
+/* v7: 평가 기준 표시 */
 .score-badge-row {
   display: flex;
   flex-wrap: wrap;
@@ -786,4 +786,32 @@ select:disabled {
   border-color: #f59e0b;
   background: #f59e0b;
   color: white;
+}
+
+.segmented-control.no-mid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.always-evidence-panel {
+  margin-top: 14px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px dashed #bfdbfe;
+  border-radius: 16px;
+}
+
+.small-title {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.guide-link-box {
+  margin: 10px 0 12px;
+}
+
+.guide-link-box .ghost-btn {
+  width: 100%;
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
 }
