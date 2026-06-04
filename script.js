@@ -1,5 +1,5 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v4
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v5
  *
  * 핵심 구조
  * - 화면: GitHub Pages
@@ -9,58 +9,68 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwVkFrBBnsy_EB2rPUBETiG0WPwm7X0oUKtxxDtEXQU_fCdz_h4NO_6n379Me5KR1EB/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 
 const EVALUATION_ITEMS = [
   {
     id: 'q01',
     title: '매장 내 기계·기구 및 설비의 안전·보건 점검',
-    desc: '리프트, 승강기, 소방설비 등 기계·기구 및 설비의 점검·유지보수 이력 확인'
+    desc: '리프트, 승강기, 소방설비 등 기계·기구 및 설비의 점검·유지보수 이력 확인',
+    example: '예: 매월 리프트 점검 실행내역 확인(외주업체) / 00월 00일 유지보수 완료'
   },
   {
     id: 'q02',
     title: '매장 근로자들의 작업복·보호구 및 방호장치 점검과 교육',
-    desc: '안전모, 장갑 등 보호구 착용·사용 지도 및 교육 실시 여부'
+    desc: '안전모, 장갑 등 보호구 착용·사용 지도 및 교육 실시 여부',
+    example: '예: 사다리 작업 시 안전모 착용 여부 상시 교육 / 보호구 착용 안내 실시'
   },
   {
     id: 'q03',
     title: '매장 산업재해 보고 및 응급조치 활동',
-    desc: '산업재해 발생 시 보고, 응급조치, 산업재해조사표 작성 등 이행 여부'
+    desc: '산업재해 발생 시 보고, 응급조치, 산업재해조사표 작성 등 이행 여부',
+    example: '예: 000매장 넘어짐 사고 발생 건 산업재해조사표 기한 내 작성 완료'
   },
   {
     id: 'q04',
     title: '매장 정리정돈 및 통로 확보 감독',
-    desc: '순회점검일지 작성, 통로·비상통로 확보, 후방공간 정리정돈 확인'
+    desc: '순회점검일지 작성, 통로·비상통로 확보, 후방공간 정리정돈 확인',
+    example: '예: 작성한 순회점검일지 확인 / 통로 적재 및 후방공간 정리정돈 지도'
   },
   {
     id: 'q05',
     title: '안전보건관리자 등의 지도·조언에 대한 협조',
-    desc: '안전보건팀 점검, 개선요청, 지도·조언 사항에 대한 협조 및 조치'
+    desc: '안전보건팀 점검, 개선요청, 지도·조언 사항에 대한 협조 및 조치',
+    example: '예: 안전보건팀 점검 후 개선조치 요청사항 조치 완료'
   },
   {
     id: 'q06',
     title: '매장 위험성평가 참여 및 개선조치 시행',
-    desc: '정기·수시 위험성평가 참여, 유해·위험요인 개선조치 이행'
+    desc: '정기·수시 위험성평가 참여, 유해·위험요인 개선조치 이행',
+    example: '예: 해당 반기 위험성평가 관리 매장 전체 완료 / 개선조치 이행 확인'
   },
   {
     id: 'q07',
     title: '매장 비상상황 발생에 대한 대응능력',
-    desc: '비상대응훈련 실시, 비상연락체계 확인, 대피 및 초기대응 역량 확보'
+    desc: '비상대응훈련 실시, 비상연락체계 확인, 대피 및 초기대응 역량 확보',
+    example: '예: 해당 반기 비상대응훈련 관리 매장 전체 완료 / 비상연락체계 확인'
   },
   {
     id: 'q08',
     title: '매장 업무 시작 전 안전한 작업환경 조성',
-    desc: '작업 전 안전교육, TBM, 건강상태 확인, 위험요인 전파 등'
+    desc: '작업 전 안전교육, TBM, 건강상태 확인, 위험요인 전파 등',
+    example: '예: 작업 시작 전 안전교육 실시 / TBM을 통한 금일 위험요인 전파'
   },
   {
     id: 'q09',
     title: '안전보건교육 참여 및 지원',
-    desc: '관리감독자교육, 정기안전보건교육, 신규입사자교육 참여·지원·독려'
+    desc: '관리감독자교육, 정기안전보건교육, 신규입사자교육 참여·지원·독려',
+    example: '예: 관리감독자교육 이수 완료 / 정기안전보건교육 및 신규입사자교육 이수현황 확인·독려'
   },
   {
     id: 'q10',
     title: '법규 및 지침 준수 여부',
-    desc: '안전보건 사내규정, 지침, 공지사항 등 확인 및 준수'
+    desc: '안전보건 사내규정, 지침, 공지사항 등 확인 및 준수',
+    example: '예: 안전보건 사내규정 및 사내 게시판 공지사항 확인·전파'
   }
 ];
 
@@ -223,6 +233,7 @@ function renderEvaluationItems() {
       <div class="check-item" data-item-card="${item.id}">
         <div class="item-title">${index + 1}. ${escapeHtml(item.title)}</div>
         <p class="item-desc">${escapeHtml(item.desc)}</p>
+        <div class="item-example">${escapeHtml(item.example || '')}</div>
 
         <div class="segmented-control" role="radiogroup" aria-label="${escapeHtml(item.title)} 평가결과">
           <label><input type="radio" name="${item.id}_result" value="양호" required checked /> 양호</label>

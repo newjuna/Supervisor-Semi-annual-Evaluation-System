@@ -275,6 +275,18 @@ select:disabled {
   line-height: 1.55;
 }
 
+.item-example {
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .segmented-control {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
