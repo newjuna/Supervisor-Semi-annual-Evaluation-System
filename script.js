@@ -1,5 +1,5 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v10
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v11
  *
  * 핵심 구조
  * - 화면: GitHub Pages
@@ -9,7 +9,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxqgDvrY7CAKUwH12-ch5ixP1TWUzwblbsmKAM3yULc3O2hhx2sxPtw5SUKusNbJuiH/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 
 const EVALUATION_ITEMS = [
   {
@@ -155,6 +155,7 @@ window.addEventListener('DOMContentLoaded', function () {
   bindEvaluationResultChange();
   bindFileInputs();
   bindExampleModal();
+  ensureSubmitModal();
   setupSignaturePad();
   loadOrganizationTree();
 });
@@ -166,17 +167,44 @@ window.addEventListener('resize', debounce(function () {
 form.addEventListener('submit', async function (event) {
   event.preventDefault();
 
+  clearResult();
+
   if (!validateAppsScriptUrl()) return;
   if (!validateOrganizationLoaded()) return;
   if (!validateBasicRequired()) return;
   if (!validateSignature()) return;
 
-  setResult('pending', '제출 준비 중입니다. 사진 압축 및 저장 준비 중입니다.');
-  showLoading(true, '사진을 압축하고 제출 자료를 준비 중입니다. 창을 닫지 말고 기다려주세요.');
+  const basicForConfirm = getBasicInfoFromForm();
+  const confirmed = await confirmSubmissionDetails(basicForConfirm);
+  if (!confirmed) return;
+
+  showLoading(true, '동일 사번·성명·매장으로 이미 제출된 내역이 있는지 확인 중입니다.');
   submitBtn.disabled = true;
-  submitBtn.textContent = '제출 중입니다...';
+  submitBtn.textContent = '제출 확인 중...';
 
   try {
+    const duplicate = await checkDuplicateSubmission(basicForConfirm);
+    if (duplicate && duplicate.exists) {
+      showLoading(false);
+      await showSubmitModal({
+        type: 'error',
+        title: '이미 제출된 정보입니다',
+        html: `동일한 <strong>사번·성명·매장명</strong>으로 이미 제출된 이력이 있습니다.<br><br>
+          <div class="modal-info-box">
+            <div><b>매장명</b><span>${escapeHtml(duplicate.storeName || basicForConfirm.storeName)}</span></div>
+            <div><b>성명</b><span>${escapeHtml(duplicate.supervisorName || basicForConfirm.supervisorName)}</span></div>
+            <div><b>사번</b><span>${escapeHtml(duplicate.employeeId || basicForConfirm.employeeId)}</span></div>
+            ${duplicate.submittedAt ? `<div><b>제출일시</b><span>${escapeHtml(duplicate.submittedAt)}</span></div>` : ''}
+          </div>
+          <p class="modal-small-text">수정 또는 재제출이 필요한 경우 안전보건팀에 문의해주세요.</p>`,
+        confirmText: '확인'
+      });
+      return;
+    }
+
+    showLoading(true, '사진을 압축하고 제출 자료를 준비 중입니다. 창을 닫지 말고 기다려주세요.');
+    submitBtn.textContent = '제출 중입니다...';
+
     const payload = await buildPayload();
 
     showLoading(true, '자료를 전송 중입니다. 네트워크 상태에 따라 시간이 걸릴 수 있습니다.');
@@ -186,18 +214,31 @@ form.addEventListener('submit', async function (event) {
     const status = await waitForSaveStatus(payload.submissionId);
 
     if (status && status.success) {
-      const displayScore = formatScoreForDisplay(status.score || payload.score);
-      setResult(
-        'success',
-        `제출 완료되었습니다.<br>제출자: ${escapeHtml(payload.basic.supervisorName)} / 환산점수: ${displayScore}점`
-      );
+      showLoading(false);
+      await showSubmitModal({
+        type: 'success',
+        title: '제출이 완료되었습니다',
+        html: `<div class="modal-info-box">
+            <div><b>매장명</b><span>${escapeHtml(payload.basic.storeName)}</span></div>
+            <div><b>성명</b><span>${escapeHtml(payload.basic.supervisorName)}</span></div>
+            <div><b>사번</b><span>${escapeHtml(payload.basic.employeeId)}</span></div>
+          </div>
+          <p class="modal-small-text">제출해주신 내용은 안전보건팀 DB와 대시보드에 자동 반영됩니다.</p>`,
+        confirmText: '확인'
+      });
       resetFormAfterSuccess();
     } else {
       throw new Error(status && status.message ? status.message : '저장 상태 확인 실패');
     }
   } catch (error) {
     console.error(error);
-    setResult('error', '제출 중 오류가 발생했습니다.<br>' + escapeHtml(error.message));
+    showLoading(false);
+    await showSubmitModal({
+      type: 'error',
+      title: '제출 중 오류가 발생했습니다',
+      html: `${escapeHtml(error.message)}<p class="modal-small-text">계속 오류가 발생하면 화면을 캡처하여 안전보건팀에 문의해주세요.</p>`,
+      confirmText: '확인'
+    });
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = '반기평가 제출하기';
@@ -589,11 +630,9 @@ function getSignatureDataUrl() {
   return exportCanvas.toDataURL('image/jpeg', 0.82);
 }
 
-async function buildPayload() {
-  const submissionId = createSubmissionId();
+function getBasicInfoFromForm() {
   const formData = new FormData(form);
-
-  const basic = {
+  return {
     evaluationPeriod: formData.get('evaluationPeriod') || '',
     headquarter: formData.get('headquarter') || '',
     department: formData.get('department') || '',
@@ -602,6 +641,120 @@ async function buildPayload() {
     supervisorName: normalizeText(formData.get('supervisorName') || ''),
     employeeId: normalizeText(formData.get('employeeId') || '')
   };
+}
+
+async function confirmSubmissionDetails(basic) {
+  return showSubmitModal({
+    type: 'confirm',
+    title: '제출 정보 확인',
+    html: `아래 정보로 제출됩니다.<br>사번·성명·매장명이 동일한 제출 건이 있으면 중복 제출이 차단됩니다.<br><br>
+      <div class="modal-info-box">
+        <div><b>영업본부</b><span>${escapeHtml(basic.headquarter)}</span></div>
+        <div><b>부서명</b><span>${escapeHtml(basic.department)}</span></div>
+        <div><b>팀명</b><span>${escapeHtml(basic.team)}</span></div>
+        <div><b>매장명</b><span>${escapeHtml(basic.storeName)}</span></div>
+        <div><b>성명</b><span>${escapeHtml(basic.supervisorName)}</span></div>
+        <div><b>사번</b><span>${escapeHtml(basic.employeeId)}</span></div>
+      </div>
+      <p class="modal-small-text">정보가 다르면 취소 후 수정해주세요.</p>`,
+    confirmText: '확인 후 제출',
+    cancelText: '수정하기'
+  });
+}
+
+async function checkDuplicateSubmission(basic) {
+  const data = await jsonpRequest({
+    mode: 'duplicate',
+    employeeId: basic.employeeId,
+    supervisorName: basic.supervisorName,
+    storeName: basic.storeName
+  }, 20000);
+
+  if (!data || data.success === false) {
+    throw new Error(data && data.message ? data.message : '중복 제출 확인에 실패했습니다.');
+  }
+
+  return data;
+}
+
+function ensureSubmitModal() {
+  if (document.getElementById('submitModal')) return;
+
+  const modal = document.createElement('div');
+  modal.id = 'submitModal';
+  modal.className = 'submit-modal';
+  modal.hidden = true;
+  modal.innerHTML = `
+    <div class="submit-modal-backdrop" data-submit-modal-cancel></div>
+    <div class="submit-modal-panel" role="dialog" aria-modal="true" aria-labelledby="submitModalTitle">
+      <div class="submit-modal-icon" id="submitModalIcon">✓</div>
+      <h2 id="submitModalTitle"></h2>
+      <div id="submitModalBody" class="submit-modal-body"></div>
+      <div class="submit-modal-actions">
+        <button type="button" id="submitModalCancel" class="submit-modal-btn secondary">취소</button>
+        <button type="button" id="submitModalConfirm" class="submit-modal-btn primary">확인</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function showSubmitModal(options) {
+  ensureSubmitModal();
+
+  const modal = document.getElementById('submitModal');
+  const panel = modal.querySelector('.submit-modal-panel');
+  const icon = document.getElementById('submitModalIcon');
+  const title = document.getElementById('submitModalTitle');
+  const body = document.getElementById('submitModalBody');
+  const confirmBtn = document.getElementById('submitModalConfirm');
+  const cancelBtn = document.getElementById('submitModalCancel');
+  const backdrop = modal.querySelector('[data-submit-modal-cancel]');
+
+  const type = options.type || 'confirm';
+  panel.className = 'submit-modal-panel ' + type;
+  icon.textContent = type === 'success' ? '✓' : (type === 'error' ? '!' : '?');
+  title.textContent = options.title || '확인';
+  body.innerHTML = options.html || '';
+  confirmBtn.textContent = options.confirmText || '확인';
+
+  const hasCancel = Boolean(options.cancelText);
+  cancelBtn.hidden = !hasCancel;
+  cancelBtn.textContent = options.cancelText || '취소';
+
+  modal.hidden = false;
+  document.body.classList.add('modal-open');
+  confirmBtn.focus();
+
+  return new Promise(function (resolve) {
+    function close(value) {
+      modal.hidden = true;
+      document.body.classList.remove('modal-open');
+      confirmBtn.removeEventListener('click', onConfirm);
+      cancelBtn.removeEventListener('click', onCancel);
+      backdrop.removeEventListener('click', onCancel);
+      document.removeEventListener('keydown', onKeydown);
+      resolve(value);
+    }
+
+    function onConfirm() { close(true); }
+    function onCancel() { close(false); }
+    function onKeydown(event) {
+      if (event.key === 'Escape') close(false);
+    }
+
+    confirmBtn.addEventListener('click', onConfirm);
+    cancelBtn.addEventListener('click', onCancel);
+    backdrop.addEventListener('click', onCancel);
+    document.addEventListener('keydown', onKeydown);
+  });
+}
+
+
+async function buildPayload() {
+  const submissionId = createSubmissionId();
+  const formData = new FormData(form);
+  const basic = getBasicInfoFromForm();
 
   const items = EVALUATION_ITEMS.map(function (item, index) {
     return {
@@ -962,6 +1115,7 @@ function validateSignature() {
 }
 
 function resetFormAfterSuccess() {
+  clearResult();
   form.reset();
   selectedFiles = {};
   document.querySelectorAll('.preview-row').forEach(function (row) {
@@ -1003,6 +1157,11 @@ function setResult(type, html) {
   if (type === 'error') {
     resultMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+}
+
+function clearResult() {
+  resultMessage.className = 'result';
+  resultMessage.innerHTML = '';
 }
 
 function escapeHtml(value) {

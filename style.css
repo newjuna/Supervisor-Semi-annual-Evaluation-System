@@ -632,6 +632,169 @@ select:disabled {
   line-height: 1.55;
 }
 
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.submit-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.submit-modal[hidden] {
+  display: none;
+}
+
+.submit-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.66);
+  backdrop-filter: blur(4px);
+}
+
+.submit-modal-panel {
+  position: relative;
+  width: min(440px, 100%);
+  background: #fff;
+  border-radius: 24px;
+  padding: 26px 22px 20px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.30);
+  text-align: center;
+}
+
+.submit-modal-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eff6ff;
+  color: var(--navy-2);
+  font-size: 28px;
+  font-weight: 1000;
+}
+
+.submit-modal-panel.success .submit-modal-icon {
+  background: #ecfdf5;
+  color: var(--green);
+}
+
+.submit-modal-panel.error .submit-modal-icon {
+  background: #fef2f2;
+  color: var(--red);
+}
+
+.submit-modal-panel h2 {
+  margin: 0 0 12px;
+  color: var(--navy);
+  font-size: 22px;
+  line-height: 1.35;
+}
+
+.submit-modal-body {
+  color: var(--gray-700);
+  font-size: 15px;
+  line-height: 1.65;
+  text-align: left;
+}
+
+.modal-info-box {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+}
+
+.modal-info-box div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.modal-info-box b {
+  flex: 0 0 82px;
+  color: var(--gray-500);
+}
+
+.modal-info-box span {
+  flex: 1;
+  text-align: right;
+  color: var(--gray-900);
+  font-weight: 900;
+  word-break: break-word;
+}
+
+.modal-small-text {
+  margin: 12px 0 0;
+  color: var(--gray-500);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.submit-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.submit-modal-btn {
+  min-height: 48px;
+  border-radius: 15px;
+  border: 1px solid var(--gray-300);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.submit-modal-btn.primary {
+  border-color: var(--navy-2);
+  background: var(--navy-2);
+  color: white;
+}
+
+.submit-modal-panel.success .submit-modal-btn.primary {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+.submit-modal-panel.error .submit-modal-btn.primary {
+  border-color: var(--red);
+  background: var(--red);
+}
+
+.submit-modal-btn.secondary {
+  background: white;
+  color: var(--gray-700);
+}
+
+.submit-modal-btn[hidden] {
+  display: none;
+}
+
+.submit-modal-btn[hidden] + .submit-modal-btn,
+.submit-modal-actions .submit-modal-btn.primary:only-child {
+  grid-column: 1 / -1;
+}
+
+.submit-modal-btn:active {
+  transform: scale(0.98);
+}
+
 @media (max-width: 720px) {
   .page {
     padding: 14px 10px calc(96px + env(safe-area-inset-bottom));
