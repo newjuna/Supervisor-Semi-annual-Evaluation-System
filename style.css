@@ -330,6 +330,14 @@ select:disabled {
   background: var(--red);
 }
 
+.item-attachment-panel {
+  margin-top: 14px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px dashed #bfdbfe;
+  border-radius: 16px;
+}
+
 .reason-panel {
   display: none;
   margin-top: 14px;
@@ -349,13 +357,13 @@ select:disabled {
 
 .photo-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
   margin-top: 10px;
 }
 
 .photo-actions.with-example {
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
 }
 
 .photo-btn {
@@ -365,14 +373,10 @@ select:disabled {
   gap: 6px;
 }
 
-.photo-btn.camera {
+.photo-btn.attach {
   background: #eff6ff;
   border-color: #bfdbfe;
   color: #1d4ed8;
-}
-
-.photo-btn.album {
-  background: #f8fafc;
 }
 
 .example-btn {

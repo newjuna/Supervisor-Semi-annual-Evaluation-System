@@ -1,5 +1,5 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v7
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v8
  *
  * 핵심 구조
  * - 화면: GitHub Pages
@@ -9,7 +9,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby5zTmB-wAjhdlROYW0bHex2-kVGkl0Kkl5ywks0T2ahA4t5jSv8AwDQHnz4JfYvAtJ/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 
 const EVALUATION_ITEMS = [
   {
@@ -22,8 +22,7 @@ const EVALUATION_ITEMS = [
       high: '해당 매장 보유 설비의 점검 또는 유지보수 이력 확인 가능',
       low: '점검자료 없음 또는 이상사항 미조치'
     },
-    alwaysEvidence: true,
-    evidenceHint: '점검표, 유지보수 이력, 설비 점검 사진 등을 첨부할 수 있습니다.'
+    exampleSrc: 'assets/examples/example_equipment.jpg'
   },
   {
     id: 'q02',
@@ -35,7 +34,8 @@ const EVALUATION_ITEMS = [
       high: '보호구 지급대장 6개월, TBM 실시, 신규채용 시 교육 실시 완료',
       mid: '보호구 지급대장 6개월, TBM 실시, 신규채용 시 교육 중 1가지 미흡',
       low: '보호구 지급대장과 교육·지도 기록 모두 없음'
-    }
+    },
+    exampleSrc: 'assets/examples/example_ppe_register.jpg'
   },
   {
     id: 'q03',
@@ -46,7 +46,8 @@ const EVALUATION_ITEMS = [
     criteria: {
       high: '산업재해 발생 건 전부 즉시 보고 및 조치 완료',
       low: '미보고 또는 지연 보고가 1건이라도 발생'
-    }
+    },
+    exampleSrc: 'assets/examples/example_accident_report.jpg'
   },
   {
     id: 'q04',
@@ -57,7 +58,8 @@ const EVALUATION_ITEMS = [
     criteria: {
       high: '순회점검표 월 4회 이상 작성',
       low: '순회점검일지 미작성 월이 있음'
-    }
+    },
+    exampleSrc: 'assets/examples/example_patrol_log.jpg'
   },
   {
     id: 'q05',
@@ -68,7 +70,8 @@ const EVALUATION_ITEMS = [
     criteria: {
       high: '비상대피훈련 결과보고 1건 이상 완료',
       low: '훈련은 실시했으나 결과보고 자료 없음'
-    }
+    },
+    exampleSrc: 'assets/examples/example_emergency_training.jpg'
   },
   {
     id: 'q06',
@@ -80,7 +83,8 @@ const EVALUATION_ITEMS = [
       high: '위험성평가 참여자료 및 개선조치 완료 내역 확인',
       mid: '위험성평가는 참여했으나 개선조치 완료 내역 없음',
       low: '위험성평가 미참여 또는 개선조치 미실행'
-    }
+    },
+    exampleSrc: 'assets/examples/example_risk_assessment.jpg'
   },
   {
     id: 'q07',
@@ -95,48 +99,11 @@ const EVALUATION_ITEMS = [
     },
     guide: {
       href: './ISO가이드.pdf',
-      label: 'ISO 가이드 PDF 보기'
+      label: '📄 ISO 가이드 PDF 보기'
     }
   }
 ];
-const DOCUMENT_FILE_FIELDS = [
-  {
-    name: 'file_riskAssessment',
-    label: '위험성평가 자료',
-    hint: '예: 정기 또는 수시 위험성평가 결과표',
-    required: true,
-    exampleSrc: 'assets/examples/example_risk_assessment.jpg'
-  },
-  {
-    name: 'file_emergencyTraining',
-    label: '비상대응훈련 자료',
-    hint: '예: 비상대응훈련 결과표 또는 훈련 사진',
-    required: true,
-    exampleSrc: 'assets/examples/example_emergency_training.jpg'
-  },
-  {
-    name: 'file_ppeRegister',
-    label: '안전보호구 지급대장',
-    hint: '예: 안전모, 장갑 등 보호구 지급대장',
-    required: false,
-    exampleSrc: 'assets/examples/example_ppe_register.jpg'
-  },
-  {
-    name: 'file_patrolLog',
-    label: '순회점검일지',
-    hint: '작성한 순회점검일지',
-    required: true,
-    exampleSrc: 'assets/examples/example_patrol_log.jpg'
-  },
-  {
-    name: 'file_accidentReport',
-    label: '산업재해조사표 또는 수시위험성평가 자료',
-    hint: '산업재해 발생 매장이 있는 경우 필수 첨부',
-    required: false,
-    accidentOnly: true,
-    exampleSrc: 'assets/examples/example_accident_report.jpg'
-  }
-];
+const DOCUMENT_FILE_FIELDS = [];
 const EVIDENCE_FILE_FIELDS = EVALUATION_ITEMS.map(function (item) {
   return {
     name: 'evidence_' + item.id,
@@ -165,7 +132,7 @@ const headquarterSelect = document.getElementById('headquarterSelect');
 const departmentSelect = document.getElementById('departmentSelect');
 const teamSelect = document.getElementById('teamSelect');
 const storeSelect = document.getElementById('storeSelect');
-const accidentOccurredSelect = document.getElementById('accidentOccurred');
+const accidentOccurredSelect = null;
 
 const signaturePad = document.getElementById('signaturePad');
 const clearSignatureBtn = document.getElementById('clearSignatureBtn');
@@ -184,10 +151,8 @@ let lastSignaturePoint = null;
 
 window.addEventListener('DOMContentLoaded', function () {
   renderEvaluationItems();
-  renderAttachmentCards();
   bindCascadingOrgSelects();
   bindEvaluationResultChange();
-  bindAccidentFileRule();
   bindFileInputs();
   bindExampleModal();
   setupSignaturePad();
@@ -204,9 +169,6 @@ form.addEventListener('submit', async function (event) {
   if (!validateAppsScriptUrl()) return;
   if (!validateOrganizationLoaded()) return;
   if (!validateBasicRequired()) return;
-  if (!validateJudgementReasons()) return;
-  if (!validateRequiredAttachments()) return;
-  if (!validateAccidentAttachment()) return;
   if (!validateSignature()) return;
 
   setResult('pending', '제출 준비 중입니다. 사진 압축 및 저장 준비 중입니다.');
@@ -264,27 +226,15 @@ function renderEvaluationItems() {
       ? `<label class="middle-option"><input type="radio" name="${item.id}_result" value="중" /> 중</label>`
       : '';
 
-    const alwaysEvidenceHtml = item.alwaysEvidence
-      ? `<div class="always-evidence-panel">
-          <div class="attachment-title small-title">점검·유지보수 증빙사진</div>
-          <p class="attachment-hint">${escapeHtml(item.evidenceHint || '필요 시 관련 사진을 첨부해주세요.')}</p>
-          ${createFilePickerHtml({
-            name: evidenceField,
-            label: '판단 증빙사진 - ' + item.title,
-            hint: item.evidenceHint || '필요 시 관련 사진을 첨부해주세요.',
-            required: false,
-            exampleSrc: ''
-          })}
-        </div>`
-      : '';
-
-    const reasonEvidenceHtml = item.alwaysEvidence ? '' : createFilePickerHtml({
-      name: evidenceField,
-      label: '판단 증빙사진 - ' + item.title,
-      hint: '필요 시 현장 사진 또는 관련 자료를 첨부해주세요.',
-      required: false,
-      exampleSrc: ''
-    });
+    const evidenceHtml = `<div class="item-attachment-panel">
+      ${createFilePickerHtml({
+        name: evidenceField,
+        label: '첨부사진 - ' + item.title,
+        hint: '해당 항목 관련 사진이나 자료가 있으면 첨부해주세요.',
+        required: false,
+        exampleSrc: item.exampleSrc || ''
+      })}
+    </div>`;
 
     return `
       <div class="check-item" data-item-card="${item.id}">
@@ -305,48 +255,28 @@ function renderEvaluationItems() {
           <label class="insufficient-option"><input type="radio" name="${item.id}_result" value="하" /> 하</label>
         </div>
 
-        ${alwaysEvidenceHtml}
-
-        <div class="reason-panel" data-reason-panel="${item.id}">
-          <label>
-            판단사유 <span class="required-mark">*</span>
-            <textarea name="${item.id}_reason" rows="3" placeholder="중 또는 하로 판단한 사유를 작성해주세요."></textarea>
-          </label>
-          ${reasonEvidenceHtml}
-        </div>
+        ${evidenceHtml}
       </div>
     `;
   }).join('');
 }
-function renderAttachmentCards() {
-  attachmentList.innerHTML = DOCUMENT_FILE_FIELDS.map(function (field) {
-    const disabledClass = field.accidentOnly ? ' conditional-hidden' : '';
-    const requiredText = field.required ? ' <span class="required-mark">*</span>' : '';
 
-    return `
-      <div class="attachment-card${disabledClass}" data-attachment-card="${field.name}">
-        <div class="attachment-title">${escapeHtml(field.label)}${requiredText}</div>
-        <p class="attachment-hint">${escapeHtml(field.hint)}</p>
-        ${createFilePickerHtml(field)}
-      </div>
-    `;
-  }).join('');
+function renderAttachmentCards() {
+  if (!attachmentList) return;
+  attachmentList.innerHTML = '';
 }
 
 function createFilePickerHtml(field) {
-  const cameraId = field.name + '_camera';
-  const albumId = field.name + '_album';
+  const inputId = field.name + '_file';
   const hasExample = !!field.exampleSrc;
   const actionClass = hasExample ? 'photo-actions with-example' : 'photo-actions';
 
   return `
     <div class="photo-picker" data-file-picker="${escapeHtml(field.name)}">
-      <input class="file-input-hidden" id="${cameraId}" type="file" accept="image/*" capture="environment" data-file-field="${escapeHtml(field.name)}" />
-      <input class="file-input-hidden" id="${albumId}" type="file" accept="image/*" data-file-field="${escapeHtml(field.name)}" />
+      <input class="file-input-hidden" id="${inputId}" type="file" accept="image/*" data-file-field="${escapeHtml(field.name)}" />
       <div class="${actionClass}">
-        <label class="photo-btn camera" for="${cameraId}">카메라 촬영</label>
-        <label class="photo-btn album" for="${albumId}">앨범 선택</label>
-        ${hasExample ? `<button type="button" class="example-btn" data-example-src="${escapeHtml(field.exampleSrc)}" data-example-title="${escapeHtml(field.label)}" data-example-caption="${escapeHtml(field.hint)}">예시보기</button>` : ''}
+        <label class="photo-btn attach" for="${inputId}">📎 첨부</label>
+        ${hasExample ? `<button type="button" class="example-btn" data-example-src="${escapeHtml(field.exampleSrc)}" data-example-title="${escapeHtml(field.label)}" data-example-caption="${escapeHtml(field.hint)}">👀 예시</button>` : ''}
       </div>
       <div class="preview-row" id="${field.name}_preview">
         <span data-preview-name="${escapeHtml(field.name)}"></span>
@@ -370,24 +300,10 @@ function bindEvaluationResultChange() {
 
 function applyEvaluationItemState(itemId) {
   const checked = form.querySelector(`input[name="${itemId}_result"]:checked`);
-  const panel = form.querySelector(`[data-reason-panel="${itemId}"]`);
   const card = form.querySelector(`[data-item-card="${itemId}"]`);
-  const reason = form.querySelector(`textarea[name="${itemId}_reason"]`);
-  const item = EVALUATION_ITEMS.find(function (entry) { return entry.id === itemId; });
-  const needsReason = checked && (checked.value === '중' || checked.value === '하');
   const isLow = checked && checked.value === '하';
 
-  if (panel) panel.classList.toggle('active', !!needsReason);
   if (card) card.classList.toggle('insufficient', !!isLow);
-
-  if (reason) {
-    reason.required = !!needsReason;
-    if (!needsReason) reason.value = '';
-  }
-
-  if (!needsReason && !(item && item.alwaysEvidence)) {
-    clearSelectedFile('evidence_' + itemId);
-  }
 }
 function bindCascadingOrgSelects() {
   headquarterSelect.addEventListener('change', function () {
@@ -491,24 +407,8 @@ function setOrgMessage(type, message) {
   orgLoadMessage.textContent = message;
 }
 
-function bindAccidentFileRule() {
-  applyAccidentFileRule();
-  accidentOccurredSelect.addEventListener('change', applyAccidentFileRule);
-}
-
-function applyAccidentFileRule() {
-  const occurred = accidentOccurredSelect.value === '있음';
-  const card = document.querySelector('[data-attachment-card="file_accidentReport"]');
-
-  if (card) {
-    card.classList.toggle('conditional-hidden', !occurred);
-    card.setAttribute('aria-hidden', occurred ? 'false' : 'true');
-  }
-
-  if (!occurred) {
-    clearSelectedFile('file_accidentReport');
-  }
-}
+function bindAccidentFileRule() {}
+function applyAccidentFileRule() {}
 
 function bindFileInputs() {
   document.addEventListener('change', function (event) {
@@ -696,8 +596,7 @@ async function buildPayload() {
     team: formData.get('team') || '',
     storeName: formData.get('storeName') || '',
     supervisorName: normalizeText(formData.get('supervisorName') || ''),
-    employeeId: normalizeText(formData.get('employeeId') || ''),
-    accidentOccurred: formData.get('accidentOccurred') || ''
+    employeeId: normalizeText(formData.get('employeeId') || '')
   };
 
   const items = EVALUATION_ITEMS.map(function (item, index) {
@@ -706,7 +605,7 @@ async function buildPayload() {
       id: item.id,
       title: item.title,
       result: formData.get(`${item.id}_result`) || '상',
-      reason: formData.get(`${item.id}_reason`) || '',
+      reason: '',
       weight: item.weight,
       scoreHigh: item.scores.high,
       scoreMid: item.scores.mid,
@@ -1027,8 +926,7 @@ function validateBasicRequired() {
     [teamSelect, '팀명을 선택해주세요.'],
     [storeSelect, '매장명을 선택해주세요.'],
     [form.elements.supervisorName, '관리감독자 성명을 입력해주세요.'],
-    [form.elements.employeeId, '사번을 입력해주세요.'],
-    [accidentOccurredSelect, '산업재해 발생 여부를 선택해주세요.']
+    [form.elements.employeeId, '사번을 입력해주세요.']
   ];
 
   for (const [el, message] of requiredFields) {
@@ -1042,45 +940,9 @@ function validateBasicRequired() {
   return true;
 }
 
-function validateJudgementReasons() {
-  for (const item of EVALUATION_ITEMS) {
-    const result = form.querySelector(`input[name="${item.id}_result"]:checked`);
-    const reason = form.querySelector(`textarea[name="${item.id}_reason"]`);
-
-    if (result && (result.value === '중' || result.value === '하') && reason && reason.value.trim() === '') {
-      const card = form.querySelector(`[data-item-card="${item.id}"]`);
-      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setResult('error', `"${item.title}" 항목이 ${result.value}인 경우 판단사유를 작성해야 합니다.`);
-      return false;
-    }
-  }
-  return true;
-}
-
-function validateRequiredAttachments() {
-  const requiredFields = DOCUMENT_FILE_FIELDS.filter(function (field) { return field.required; });
-
-  for (const field of requiredFields) {
-    if (!selectedFiles[field.name]) {
-      const card = document.querySelector(`[data-attachment-card="${field.name}"]`);
-      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setResult('error', `${field.label} 사진을 첨부해주세요.`);
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function validateAccidentAttachment() {
-  if (accidentOccurredSelect.value === '있음' && !selectedFiles.file_accidentReport) {
-    const card = document.querySelector('[data-attachment-card="file_accidentReport"]');
-    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setResult('error', '산업재해 발생 여부를 “있음”으로 선택한 경우 산업재해조사표 또는 수시위험성평가 자료를 첨부해야 합니다.');
-    return false;
-  }
-  return true;
-}
+function validateJudgementReasons() { return true; }
+function validateRequiredAttachments() { return true; }
+function validateAccidentAttachment() { return true; }
 
 function validateSignature() {
   if (!hasSignature) {
