@@ -411,6 +411,10 @@ select:disabled {
   opacity: 0.55;
 }
 
+.conditional-hidden {
+  display: none !important;
+}
+
 .signature-pad-wrap {
   position: relative;
   width: 100%;

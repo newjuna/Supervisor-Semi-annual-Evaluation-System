@@ -1,5 +1,5 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v3
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v4
  *
  * 핵심 구조
  * - 화면: GitHub Pages
@@ -9,7 +9,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwHBtx6sIBF9FggCXqlzBwFwXm9O7qSvNkusxKmv_9gAjvoHmpfO23ITe11CPtIsuOW/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 
 const EVALUATION_ITEMS = [
   {
@@ -96,7 +96,7 @@ const DOCUMENT_FILE_FIELDS = [
   {
     name: 'file_patrolLog',
     label: '순회점검일지',
-    hint: '예: 1~6월 중 작성한 순회점검일지',
+    hint: '작성한 순회점검일지',
     required: true,
     exampleSrc: 'assets/examples/example_patrol_log.jpg'
   },
@@ -250,7 +250,7 @@ function renderEvaluationItems() {
 
 function renderAttachmentCards() {
   attachmentList.innerHTML = DOCUMENT_FILE_FIELDS.map(function (field) {
-    const disabledClass = field.accidentOnly ? ' conditional-disabled' : '';
+    const disabledClass = field.accidentOnly ? ' conditional-hidden' : '';
     const requiredText = field.required ? ' <span class="required-mark">*</span>' : '';
 
     return `
@@ -430,7 +430,8 @@ function applyAccidentFileRule() {
   const card = document.querySelector('[data-attachment-card="file_accidentReport"]');
 
   if (card) {
-    card.classList.toggle('conditional-disabled', !occurred);
+    card.classList.toggle('conditional-hidden', !occurred);
+    card.setAttribute('aria-hidden', occurred ? 'false' : 'true');
   }
 
   if (!occurred) {
