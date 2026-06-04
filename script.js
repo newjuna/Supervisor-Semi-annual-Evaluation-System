@@ -1,15 +1,15 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v3
  *
  * 핵심 구조
  * - 화면: GitHub Pages
  * - 조직도: Google Sheets '조직도' 시트 A:D를 Apps Script에서 불러옴
  * - 저장: Apps Script → Google Sheets DB
- * - 사진: Google Drive 미사용, Google Sheets 내부 _FILE_INDEX / _FILE_CHUNKS 시트에 압축 저장
+ * - 사진/서명: Google Drive 미사용, Google Sheets 내부 _FILE_INDEX / _FILE_CHUNKS 시트에 압축 저장
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxV0GPyL4803lj_FPYuyddPfn57sHSCJKuKeHLAM3ddiubdb7PGpftQWlWCSQFj1tBg/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 
 const EVALUATION_ITEMS = [
   {
@@ -64,21 +64,74 @@ const EVALUATION_ITEMS = [
   }
 ];
 
-const FILE_FIELDS = [
-  { name: 'file_equipment', label: '기계·기구 및 설비 점검 / 유지보수 이력' },
-  { name: 'file_riskAssessment', label: '위험성평가 자료' },
-  { name: 'file_emergencyTraining', label: '비상대응훈련 자료' },
-  { name: 'file_ppeRegister', label: '안전보호구 지급대장' },
-  { name: 'file_patrolLog', label: '순회점검일지' },
-  { name: 'file_accidentReport', label: '산업재해조사표 또는 수시위험성평가 자료' }
+const DOCUMENT_FILE_FIELDS = [
+  {
+    name: 'file_equipment',
+    label: '기계·기구 및 설비 점검 / 유지보수 이력',
+    hint: '예: 리프트, 승강기, 소방설비 등 점검·유지보수 이력',
+    required: false,
+    exampleSrc: 'assets/examples/example_equipment.jpg'
+  },
+  {
+    name: 'file_riskAssessment',
+    label: '위험성평가 자료',
+    hint: '예: 정기 또는 수시 위험성평가 결과표',
+    required: true,
+    exampleSrc: 'assets/examples/example_risk_assessment.jpg'
+  },
+  {
+    name: 'file_emergencyTraining',
+    label: '비상대응훈련 자료',
+    hint: '예: 비상대응훈련 결과표 또는 훈련 사진',
+    required: true,
+    exampleSrc: 'assets/examples/example_emergency_training.jpg'
+  },
+  {
+    name: 'file_ppeRegister',
+    label: '안전보호구 지급대장',
+    hint: '예: 안전모, 장갑 등 보호구 지급대장',
+    required: false,
+    exampleSrc: 'assets/examples/example_ppe_register.jpg'
+  },
+  {
+    name: 'file_patrolLog',
+    label: '순회점검일지',
+    hint: '예: 1~6월 중 작성한 순회점검일지',
+    required: true,
+    exampleSrc: 'assets/examples/example_patrol_log.jpg'
+  },
+  {
+    name: 'file_accidentReport',
+    label: '산업재해조사표 또는 수시위험성평가 자료',
+    hint: '산업재해 발생 매장이 있는 경우 필수 첨부',
+    required: false,
+    accidentOnly: true,
+    exampleSrc: 'assets/examples/example_accident_report.jpg'
+  }
 ];
 
+const EVIDENCE_FILE_FIELDS = EVALUATION_ITEMS.map(function (item) {
+  return {
+    name: 'evidence_' + item.id,
+    label: '미흡 증빙사진 - ' + item.title,
+    hint: '미흡으로 선택한 경우 필요 시 현장 사진 또는 관련 자료를 첨부해주세요.',
+    required: false,
+    evidenceOnly: true,
+    itemId: item.id
+  };
+});
+
+const ALL_FILE_FIELDS = DOCUMENT_FILE_FIELDS.concat(EVIDENCE_FILE_FIELDS);
+
 let orgTree = {};
+let selectedFiles = {};
+let hasSignature = false;
 
 const form = document.getElementById('evaluationForm');
 const submitBtn = document.getElementById('submitBtn');
 const resultMessage = document.getElementById('resultMessage');
 const evaluationItemsContainer = document.getElementById('evaluationItems');
+const attachmentList = document.getElementById('attachmentList');
 
 const orgLoadMessage = document.getElementById('orgLoadMessage');
 const headquarterSelect = document.getElementById('headquarterSelect');
@@ -86,35 +139,61 @@ const departmentSelect = document.getElementById('departmentSelect');
 const teamSelect = document.getElementById('teamSelect');
 const storeSelect = document.getElementById('storeSelect');
 const accidentOccurredSelect = document.getElementById('accidentOccurred');
-const accidentReportFile = document.getElementById('accidentReportFile');
-const accidentFileLabel = document.getElementById('accidentFileLabel');
 
-document.addEventListener('DOMContentLoaded', function () {
+const signaturePad = document.getElementById('signaturePad');
+const clearSignatureBtn = document.getElementById('clearSignatureBtn');
+const signatureWrap = document.querySelector('.signature-pad-wrap');
+
+const loadingOverlay = document.getElementById('loadingOverlay');
+const loadingText = document.getElementById('loadingText');
+const exampleModal = document.getElementById('exampleModal');
+const exampleImage = document.getElementById('exampleImage');
+const exampleModalTitle = document.getElementById('exampleModalTitle');
+const exampleCaption = document.getElementById('exampleCaption');
+
+let signatureContext;
+let signatureDrawing = false;
+let lastSignaturePoint = null;
+
+window.addEventListener('DOMContentLoaded', function () {
   renderEvaluationItems();
+  renderAttachmentCards();
   bindCascadingOrgSelects();
+  bindEvaluationResultChange();
   bindAccidentFileRule();
+  bindFileInputs();
+  bindExampleModal();
+  setupSignaturePad();
   loadOrganizationTree();
 });
+
+window.addEventListener('resize', debounce(function () {
+  resizeSignatureCanvas(true);
+}, 250));
 
 form.addEventListener('submit', async function (event) {
   event.preventDefault();
 
   if (!validateAppsScriptUrl()) return;
   if (!validateOrganizationLoaded()) return;
+  if (!validateBasicRequired()) return;
   if (!validateInsufficientReasons()) return;
+  if (!validateRequiredAttachments()) return;
   if (!validateAccidentAttachment()) return;
+  if (!validateSignature()) return;
 
   setResult('pending', '제출 준비 중입니다. 사진 압축 및 저장 준비 중입니다.');
+  showLoading(true, '사진을 압축하고 제출 자료를 준비 중입니다. 창을 닫지 말고 기다려주세요.');
   submitBtn.disabled = true;
   submitBtn.textContent = '제출 중입니다...';
 
   try {
     const payload = await buildPayload();
 
-    setResult('pending', '자료를 전송 중입니다. 창을 닫지 말고 기다려주세요.');
+    showLoading(true, '자료를 전송 중입니다. 네트워크 상태에 따라 시간이 걸릴 수 있습니다.');
     await postPayloadByHiddenForm(payload);
 
-    setResult('pending', '자료가 전송되었습니다. 저장 완료 여부를 확인 중입니다...');
+    showLoading(true, '자료가 전송되었습니다. 저장 완료 여부를 확인 중입니다.');
     const status = await waitForSaveStatus(payload.submissionId);
 
     if (status && status.success) {
@@ -122,9 +201,7 @@ form.addEventListener('submit', async function (event) {
         'success',
         `제출 완료되었습니다.<br>제출자: ${escapeHtml(payload.basic.supervisorName)} / 자동점수: ${status.score || payload.score}점`
       );
-      form.reset();
-      resetOrgSelectsAfterSubmit();
-      bindAccidentFileRule();
+      resetFormAfterSuccess();
     } else {
       throw new Error(status && status.message ? status.message : '저장 상태 확인 실패');
     }
@@ -134,36 +211,111 @@ form.addEventListener('submit', async function (event) {
   } finally {
     submitBtn.disabled = false;
     submitBtn.textContent = '반기평가 제출하기';
+    showLoading(false);
   }
 });
 
 function renderEvaluationItems() {
   evaluationItemsContainer.innerHTML = EVALUATION_ITEMS.map(function (item, index) {
+    const evidenceField = 'evidence_' + item.id;
+
     return `
-      <div class="check-item" data-item="${item.id}">
+      <div class="check-item" data-item-card="${item.id}">
         <div class="item-title">${index + 1}. ${escapeHtml(item.title)}</div>
         <p class="item-desc">${escapeHtml(item.desc)}</p>
 
-        <div class="radio-group" role="radiogroup" aria-label="${escapeHtml(item.title)} 평가결과">
-          <label><input type="radio" name="${item.id}_result" value="양호" required /> 양호</label>
-          <label><input type="radio" name="${item.id}_result" value="미흡" /> 미흡</label>
+        <div class="segmented-control" role="radiogroup" aria-label="${escapeHtml(item.title)} 평가결과">
+          <label><input type="radio" name="${item.id}_result" value="양호" required checked /> 양호</label>
+          <label class="insufficient-option"><input type="radio" name="${item.id}_result" value="미흡" /> 미흡</label>
           <label><input type="radio" name="${item.id}_result" value="N/A" /> N/A</label>
         </div>
 
-        <div class="detail-grid">
+        <div class="reason-panel" data-reason-panel="${item.id}">
           <label>
-            실행내역 <span class="required-mark">*</span>
-            <textarea name="${item.id}_action" rows="3" placeholder="예: 상반기 위험성평가 완료, 순회점검일지 확인 등" required></textarea>
+            미흡사유 <span class="required-mark">*</span>
+            <textarea name="${item.id}_reason" rows="3" placeholder="미흡으로 판단한 사유를 작성해주세요."></textarea>
           </label>
-
-          <label>
-            미흡사유
-            <textarea name="${item.id}_reason" rows="3" placeholder="미흡 선택 시 사유를 작성해주세요."></textarea>
-          </label>
+          ${createFilePickerHtml({
+            name: evidenceField,
+            label: '미흡 증빙사진',
+            hint: '필요 시 현장 사진 또는 관련 자료를 첨부해주세요.',
+            required: false,
+            exampleSrc: ''
+          })}
         </div>
       </div>
     `;
   }).join('');
+}
+
+function renderAttachmentCards() {
+  attachmentList.innerHTML = DOCUMENT_FILE_FIELDS.map(function (field) {
+    const disabledClass = field.accidentOnly ? ' conditional-disabled' : '';
+    const requiredText = field.required ? ' <span class="required-mark">*</span>' : '';
+
+    return `
+      <div class="attachment-card${disabledClass}" data-attachment-card="${field.name}">
+        <div class="attachment-title">${escapeHtml(field.label)}${requiredText}</div>
+        <p class="attachment-hint">${escapeHtml(field.hint)}</p>
+        ${createFilePickerHtml(field)}
+      </div>
+    `;
+  }).join('');
+}
+
+function createFilePickerHtml(field) {
+  const cameraId = field.name + '_camera';
+  const albumId = field.name + '_album';
+  const hasExample = !!field.exampleSrc;
+  const actionClass = hasExample ? 'photo-actions with-example' : 'photo-actions';
+
+  return `
+    <div class="photo-picker" data-file-picker="${escapeHtml(field.name)}">
+      <input class="file-input-hidden" id="${cameraId}" type="file" accept="image/*" capture="environment" data-file-field="${escapeHtml(field.name)}" />
+      <input class="file-input-hidden" id="${albumId}" type="file" accept="image/*" data-file-field="${escapeHtml(field.name)}" />
+      <div class="${actionClass}">
+        <label class="photo-btn camera" for="${cameraId}">카메라 촬영</label>
+        <label class="photo-btn album" for="${albumId}">앨범 선택</label>
+        ${hasExample ? `<button type="button" class="example-btn" data-example-src="${escapeHtml(field.exampleSrc)}" data-example-title="${escapeHtml(field.label)}" data-example-caption="${escapeHtml(field.hint)}">예시보기</button>` : ''}
+      </div>
+      <div class="preview-row" id="${field.name}_preview">
+        <span data-preview-name="${escapeHtml(field.name)}"></span>
+        <button type="button" class="clear-file-btn" data-clear-file="${escapeHtml(field.name)}">삭제</button>
+      </div>
+    </div>
+  `;
+}
+
+function bindEvaluationResultChange() {
+  EVALUATION_ITEMS.forEach(function (item) {
+    const radios = form.querySelectorAll(`input[name="${item.id}_result"]`);
+    radios.forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        applyEvaluationItemState(item.id);
+      });
+    });
+    applyEvaluationItemState(item.id);
+  });
+}
+
+function applyEvaluationItemState(itemId) {
+  const checked = form.querySelector(`input[name="${itemId}_result"]:checked`);
+  const panel = form.querySelector(`[data-reason-panel="${itemId}"]`);
+  const card = form.querySelector(`[data-item-card="${itemId}"]`);
+  const reason = form.querySelector(`textarea[name="${itemId}_reason"]`);
+  const isInsufficient = checked && checked.value === '미흡';
+
+  if (panel) panel.classList.toggle('active', !!isInsufficient);
+  if (card) card.classList.toggle('insufficient', !!isInsufficient);
+
+  if (reason) {
+    reason.required = !!isInsufficient;
+    if (!isInsufficient) reason.value = '';
+  }
+
+  if (!isInsufficient) {
+    clearSelectedFile('evidence_' + itemId);
+  }
 }
 
 function bindCascadingOrgSelects() {
@@ -270,18 +422,195 @@ function setOrgMessage(type, message) {
 
 function bindAccidentFileRule() {
   applyAccidentFileRule();
-  accidentOccurredSelect.onchange = applyAccidentFileRule;
+  accidentOccurredSelect.addEventListener('change', applyAccidentFileRule);
 }
 
 function applyAccidentFileRule() {
   const occurred = accidentOccurredSelect.value === '있음';
-  accidentReportFile.disabled = !occurred;
-  accidentReportFile.required = occurred;
-  accidentFileLabel.classList.toggle('conditional-disabled', !occurred);
+  const card = document.querySelector('[data-attachment-card="file_accidentReport"]');
+
+  if (card) {
+    card.classList.toggle('conditional-disabled', !occurred);
+  }
 
   if (!occurred) {
-    accidentReportFile.value = '';
+    clearSelectedFile('file_accidentReport');
   }
+}
+
+function bindFileInputs() {
+  document.addEventListener('change', function (event) {
+    const input = event.target;
+    if (!input.matches('[data-file-field]')) return;
+
+    const field = input.getAttribute('data-file-field');
+    const file = input.files && input.files[0] ? input.files[0] : null;
+
+    if (!file) return;
+
+    if (!file.type || !file.type.startsWith('image/')) {
+      alert('이미지 파일만 첨부할 수 있습니다.');
+      input.value = '';
+      return;
+    }
+
+    selectedFiles[field] = file;
+    updateFilePreview(field, file.name);
+  });
+
+  document.addEventListener('click', function (event) {
+    const clearButton = event.target.closest('[data-clear-file]');
+    if (!clearButton) return;
+    clearSelectedFile(clearButton.getAttribute('data-clear-file'));
+  });
+}
+
+function updateFilePreview(field, fileName) {
+  const row = document.getElementById(field + '_preview');
+  const nameEl = document.querySelector(`[data-preview-name="${field}"]`);
+
+  if (row && nameEl) {
+    row.classList.add('active');
+    nameEl.textContent = '첨부됨: ' + fileName;
+  }
+}
+
+function clearSelectedFile(field) {
+  delete selectedFiles[field];
+  document.querySelectorAll(`[data-file-field="${field}"]`).forEach(function (input) {
+    input.value = '';
+  });
+
+  const row = document.getElementById(field + '_preview');
+  const nameEl = document.querySelector(`[data-preview-name="${field}"]`);
+
+  if (row && nameEl) {
+    row.classList.remove('active');
+    nameEl.textContent = '';
+  }
+}
+
+function bindExampleModal() {
+  document.addEventListener('click', function (event) {
+    const button = event.target.closest('[data-example-src]');
+    if (!button) return;
+
+    exampleImage.src = button.getAttribute('data-example-src');
+    exampleModalTitle.textContent = button.getAttribute('data-example-title') || '첨부 예시';
+    exampleCaption.textContent = button.getAttribute('data-example-caption') || '';
+    exampleModal.hidden = false;
+  });
+
+  document.querySelectorAll('[data-close-modal]').forEach(function (el) {
+    el.addEventListener('click', closeExampleModal);
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') closeExampleModal();
+  });
+}
+
+function closeExampleModal() {
+  exampleModal.hidden = true;
+  exampleImage.src = '';
+}
+
+function setupSignaturePad() {
+  signatureContext = signaturePad.getContext('2d');
+  resizeSignatureCanvas(false);
+
+  signaturePad.addEventListener('pointerdown', startSignature);
+  signaturePad.addEventListener('pointermove', drawSignature);
+  signaturePad.addEventListener('pointerup', endSignature);
+  signaturePad.addEventListener('pointercancel', endSignature);
+  signaturePad.addEventListener('pointerleave', endSignature);
+
+  clearSignatureBtn.addEventListener('click', clearSignature);
+}
+
+function resizeSignatureCanvas(keepExisting) {
+  if (!signaturePad || !signatureContext) return;
+
+  let oldDataUrl = '';
+  if (keepExisting && hasSignature) {
+    oldDataUrl = signaturePad.toDataURL('image/png');
+  }
+
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  const rect = signaturePad.getBoundingClientRect();
+  const width = Math.max(rect.width, 300);
+  const height = Math.max(rect.height, 160);
+
+  signaturePad.width = Math.round(width * ratio);
+  signaturePad.height = Math.round(height * ratio);
+  signatureContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+  signatureContext.lineWidth = 3;
+  signatureContext.lineCap = 'round';
+  signatureContext.lineJoin = 'round';
+  signatureContext.strokeStyle = '#111827';
+
+  if (oldDataUrl) {
+    const img = new Image();
+    img.onload = function () {
+      signatureContext.drawImage(img, 0, 0, width, height);
+    };
+    img.src = oldDataUrl;
+  }
+}
+
+function getCanvasPoint(event) {
+  const rect = signaturePad.getBoundingClientRect();
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  };
+}
+
+function startSignature(event) {
+  event.preventDefault();
+  signaturePad.setPointerCapture(event.pointerId);
+  signatureDrawing = true;
+  lastSignaturePoint = getCanvasPoint(event);
+  hasSignature = true;
+  signatureWrap.classList.add('signed');
+}
+
+function drawSignature(event) {
+  if (!signatureDrawing || !lastSignaturePoint) return;
+  event.preventDefault();
+
+  const point = getCanvasPoint(event);
+  signatureContext.beginPath();
+  signatureContext.moveTo(lastSignaturePoint.x, lastSignaturePoint.y);
+  signatureContext.lineTo(point.x, point.y);
+  signatureContext.stroke();
+  lastSignaturePoint = point;
+}
+
+function endSignature(event) {
+  if (!signatureDrawing) return;
+  event.preventDefault();
+  signatureDrawing = false;
+  lastSignaturePoint = null;
+}
+
+function clearSignature() {
+  const rect = signaturePad.getBoundingClientRect();
+  signatureContext.clearRect(0, 0, rect.width, rect.height);
+  hasSignature = false;
+  signatureWrap.classList.remove('signed');
+}
+
+function getSignatureDataUrl() {
+  const rect = signaturePad.getBoundingClientRect();
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = Math.round(rect.width);
+  exportCanvas.height = Math.round(rect.height);
+  const ctx = exportCanvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+  ctx.drawImage(signaturePad, 0, 0, exportCanvas.width, exportCanvas.height);
+  return exportCanvas.toDataURL('image/jpeg', 0.82);
 }
 
 async function buildPayload() {
@@ -296,8 +625,7 @@ async function buildPayload() {
     storeName: formData.get('storeName') || '',
     supervisorName: normalizeText(formData.get('supervisorName') || ''),
     employeeId: normalizeText(formData.get('employeeId') || ''),
-    accidentOccurred: formData.get('accidentOccurred') || '',
-    overallComment: formData.get('overallComment') || ''
+    accidentOccurred: formData.get('accidentOccurred') || ''
   };
 
   const items = EVALUATION_ITEMS.map(function (item, index) {
@@ -305,14 +633,23 @@ async function buildPayload() {
       no: index + 1,
       id: item.id,
       title: item.title,
-      result: formData.get(`${item.id}_result`) || '',
-      action: formData.get(`${item.id}_action`) || '',
+      result: formData.get(`${item.id}_result`) || '양호',
       reason: formData.get(`${item.id}_reason`) || ''
     };
   });
 
   const scoreInfo = calculateScore(items);
-  const attachments = await collectAttachments(formData, submissionId);
+  const attachments = await collectAttachments(submissionId);
+  attachments.push({
+    field: 'signature',
+    label: '제출자 전자서명',
+    hasFile: true,
+    originalName: 'signature.jpg',
+    fileName: `${submissionId}_signature.jpg`,
+    mimeType: 'image/jpeg',
+    size: getSignatureDataUrl().length,
+    dataUrl: getSignatureDataUrl()
+  });
 
   return {
     submissionId: submissionId,
@@ -329,13 +666,13 @@ async function buildPayload() {
   };
 }
 
-async function collectAttachments(formData, submissionId) {
+async function collectAttachments(submissionId) {
   const attachments = [];
 
-  for (const field of FILE_FIELDS) {
-    const file = formData.get(field.name);
+  for (const field of ALL_FILE_FIELDS) {
+    const file = selectedFiles[field.name];
 
-    if (!file || !file.name) {
+    if (!file) {
       attachments.push({
         field: field.name,
         label: field.label,
@@ -366,15 +703,14 @@ async function processImageFile(file) {
     throw new Error(`${file.name} 파일은 이미지 파일만 첨부할 수 있습니다.`);
   }
 
-  let dataUrl = await resizeImageToDataUrl(file, 900, 0.55);
+  let dataUrl = await resizeImageToDataUrl(file, 900, 0.58);
 
-  // 구글시트 저장 안정성을 위해 너무 큰 이미지는 한 번 더 축소합니다.
-  if (dataUrl.length > 220000) {
-    dataUrl = await resizeImageToDataUrl(file, 700, 0.45);
+  if (dataUrl.length > 240000) {
+    dataUrl = await resizeImageToDataUrl(file, 750, 0.48);
   }
 
-  if (dataUrl.length > 320000) {
-    throw new Error(`${file.name} 사진 용량이 너무 큽니다. 조금 더 멀리서 촬영하지 말고, 문서 부분만 나오게 다시 촬영해주세요.`);
+  if (dataUrl.length > 340000) {
+    throw new Error(`${file.name} 사진 용량이 너무 큽니다. 문서 부분만 나오게 다시 촬영하거나 앨범에서 더 작은 사진을 선택해주세요.`);
   }
 
   return {
@@ -470,12 +806,11 @@ function postPayloadByHiddenForm(payload) {
     const timer = setTimeout(function () {
       cleanup();
       reject(new Error('전송 시간이 초과되었습니다. 사진 용량을 줄이거나 다시 시도해주세요.'));
-    }, 70000);
+    }, 90000);
 
     iframe.onload = function () {
       if (!submitted) return;
       clearTimeout(timer);
-      // 실제 저장 성공 여부는 status polling에서 확인합니다.
       setTimeout(function () {
         cleanup();
         resolve();
@@ -499,7 +834,7 @@ function postPayloadByHiddenForm(payload) {
 
 function waitForSaveStatus(submissionId) {
   const started = Date.now();
-  const timeoutMs = 90000;
+  const timeoutMs = 100000;
   const intervalMs = 2200;
 
   return new Promise(function (resolve, reject) {
@@ -586,12 +921,35 @@ function validateOrganizationLoaded() {
   return true;
 }
 
+function validateBasicRequired() {
+  const requiredFields = [
+    [headquarterSelect, '영업본부를 선택해주세요.'],
+    [departmentSelect, '부서명을 선택해주세요.'],
+    [teamSelect, '팀명을 선택해주세요.'],
+    [storeSelect, '매장명을 선택해주세요.'],
+    [form.elements.supervisorName, '관리감독자 성명을 입력해주세요.'],
+    [form.elements.employeeId, '사번을 입력해주세요.'],
+    [accidentOccurredSelect, '산업재해 발생 여부를 선택해주세요.']
+  ];
+
+  for (const [el, message] of requiredFields) {
+    if (!el || !String(el.value || '').trim()) {
+      setResult('error', message);
+      el.focus();
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function validateInsufficientReasons() {
   for (const item of EVALUATION_ITEMS) {
     const result = form.querySelector(`input[name="${item.id}_result"]:checked`);
     const reason = form.querySelector(`textarea[name="${item.id}_reason"]`);
 
     if (result && result.value === '미흡' && reason && reason.value.trim() === '') {
+      applyEvaluationItemState(item.id);
       reason.focus();
       setResult('error', `"${item.title}" 항목이 미흡인 경우 미흡사유를 작성해야 합니다.`);
       return false;
@@ -601,13 +959,61 @@ function validateInsufficientReasons() {
   return true;
 }
 
+function validateRequiredAttachments() {
+  const requiredFields = DOCUMENT_FILE_FIELDS.filter(function (field) { return field.required; });
+
+  for (const field of requiredFields) {
+    if (!selectedFiles[field.name]) {
+      const card = document.querySelector(`[data-attachment-card="${field.name}"]`);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setResult('error', `${field.label} 사진을 첨부해주세요.`);
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function validateAccidentAttachment() {
-  if (accidentOccurredSelect.value === '있음' && !accidentReportFile.files.length) {
+  if (accidentOccurredSelect.value === '있음' && !selectedFiles.file_accidentReport) {
+    const card = document.querySelector('[data-attachment-card="file_accidentReport"]');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
     setResult('error', '산업재해 발생 여부를 “있음”으로 선택한 경우 산업재해조사표 또는 수시위험성평가 자료를 첨부해야 합니다.');
-    accidentReportFile.focus();
     return false;
   }
   return true;
+}
+
+function validateSignature() {
+  if (!hasSignature) {
+    signatureWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setResult('error', '제출 전 서명란에 서명해주세요.');
+    return false;
+  }
+  return true;
+}
+
+function resetFormAfterSuccess() {
+  form.reset();
+  selectedFiles = {};
+  document.querySelectorAll('.preview-row').forEach(function (row) {
+    row.classList.remove('active');
+    const span = row.querySelector('span');
+    if (span) span.textContent = '';
+  });
+  EVALUATION_ITEMS.forEach(function (item) {
+    const good = form.querySelector(`input[name="${item.id}_result"][value="양호"]`);
+    if (good) good.checked = true;
+    applyEvaluationItemState(item.id);
+  });
+  clearSignature();
+  resetOrgSelectsAfterSubmit();
+  applyAccidentFileRule();
+}
+
+function showLoading(show, message) {
+  if (message) loadingText.textContent = message;
+  loadingOverlay.hidden = !show;
 }
 
 function createSubmissionId() {
@@ -626,6 +1032,9 @@ function normalizeText(value) {
 function setResult(type, html) {
   resultMessage.className = 'result ' + type;
   resultMessage.innerHTML = html;
+  if (type === 'error') {
+    resultMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 function escapeHtml(value) {
@@ -639,4 +1048,15 @@ function escapeHtml(value) {
 
 function koreanSort(a, b) {
   return String(a).localeCompare(String(b), 'ko');
+}
+
+function debounce(fn, delay) {
+  let timer;
+  return function () {
+    clearTimeout(timer);
+    const args = arguments;
+    timer = setTimeout(function () {
+      fn.apply(null, args);
+    }, delay);
+  };
 }
