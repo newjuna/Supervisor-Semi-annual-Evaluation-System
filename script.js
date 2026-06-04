@@ -1,16 +1,16 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v13
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v14
  *
  * 핵심 구조
  * - 화면: GitHub Pages
  * - 조직도: Google Sheets '조직도' 시트 A:D를 Apps Script에서 불러옴
  * - 저장: Apps Script → Google Sheets DB
  * - 사진/서명: Google Drive 미사용, Google Sheets 내부 _FILE_INDEX / _FILE_CHUNKS 시트에 압축 저장
- * - 항목별 첨부사진은 최대 5장까지 등록 가능
+ * - 항목별 첨부사진은 추가 선택해도 기존 사진이 유지되며 최대 5장까지 등록 가능
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0DzobAgGdsBCkHleEALfEPYSSnBHXr39wOqDazqqpHs5risrZBi1nHZiWavSZWLOm/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const MAX_FILES_PER_FIELD = 5;
 
 const EVALUATION_ITEMS = [
@@ -124,11 +124,19 @@ let orgTree = {};
 let selectedFiles = {};
 let hasSignature = false;
 
+const pageRoot = document.getElementById('pageRoot');
+const noticeCard = document.getElementById('noticeCard');
 const form = document.getElementById('evaluationForm');
 const submitBtn = document.getElementById('submitBtn');
 const resultMessage = document.getElementById('resultMessage');
 const evaluationItemsContainer = document.getElementById('evaluationItems');
 const attachmentList = document.getElementById('attachmentList');
+const basicInfoSection = document.getElementById('basicInfoSection');
+const evaluationPage = document.getElementById('evaluationPage');
+const startEvaluationBtn = document.getElementById('startEvaluationBtn');
+const editBasicInfoBtn = document.getElementById('editBasicInfoBtn');
+const selectedInfoText = document.getElementById('selectedInfoText');
+const entryMessage = document.getElementById('entryMessage');
 
 const orgLoadMessage = document.getElementById('orgLoadMessage');
 const headquarterSelect = document.getElementById('headquarterSelect');
@@ -144,6 +152,7 @@ const clearSignatureBtn = document.getElementById('clearSignatureBtn');
 const signatureWrap = document.querySelector('.signature-pad-wrap');
 
 const loadingOverlay = document.getElementById('loadingOverlay');
+const loadingTitle = document.getElementById('loadingTitle');
 const loadingText = document.getElementById('loadingText');
 const exampleModal = document.getElementById('exampleModal');
 const exampleImage = document.getElementById('exampleImage');
@@ -161,6 +170,8 @@ window.addEventListener('DOMContentLoaded', function () {
   bindFileInputs();
   bindExampleModal();
   bindEmployeeIdInput();
+  bindEntryPage();
+  showEntryPage(false);
   ensureSubmitModal();
   setupSignaturePad();
   loadOrganizationTree();
@@ -330,6 +341,7 @@ function createFilePickerHtml(field) {
         <label class="photo-btn attach" for="${inputId}">📎 첨부</label>
         ${secondActionHtml}
       </div>
+      <p class="photo-add-guide">추가로 첨부해도 기존 사진은 유지됩니다. 삭제 버튼을 누르면 해당 항목 사진이 모두 삭제됩니다.</p>
       <div class="preview-row" id="${field.name}_preview">
         <span data-preview-name="${escapeHtml(field.name)}"></span>
         <button type="button" class="clear-file-btn" data-clear-file="${escapeHtml(field.name)}">삭제</button>
@@ -357,6 +369,57 @@ function applyEvaluationItemState(itemId) {
 
   if (card) card.classList.toggle('insufficient', !!isLow);
 }
+
+function bindEntryPage() {
+  if (startEvaluationBtn) {
+    startEvaluationBtn.addEventListener('click', function () {
+      clearResult();
+      if (!validateAppsScriptUrl()) return;
+      if (!validateOrganizationLoaded()) return;
+      if (!validateBasicRequired()) return;
+      updateEmployeeIdFull();
+      updateSelectedInfoSummary();
+      showEvaluationPage();
+    });
+  }
+
+  if (editBasicInfoBtn) {
+    editBasicInfoBtn.addEventListener('click', function () {
+      showEntryPage(true);
+    });
+  }
+}
+
+function showEvaluationPage() {
+  if (pageRoot) pageRoot.classList.add('evaluation-mode');
+  if (noticeCard) noticeCard.hidden = true;
+  if (basicInfoSection) basicInfoSection.hidden = true;
+  if (evaluationPage) evaluationPage.hidden = false;
+  updateSelectedInfoSummary();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showEntryPage(scrollTop) {
+  if (pageRoot) pageRoot.classList.remove('evaluation-mode');
+  if (noticeCard) noticeCard.hidden = false;
+  if (basicInfoSection) basicInfoSection.hidden = false;
+  if (evaluationPage) evaluationPage.hidden = true;
+  if (scrollTop) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(function () {
+      if (headquarterSelect && !headquarterSelect.disabled) headquarterSelect.focus();
+    }, 400);
+  }
+}
+
+function updateSelectedInfoSummary() {
+  if (!selectedInfoText) return;
+  const basic = getBasicInfoFromForm();
+  selectedInfoText.textContent = [basic.headquarter, basic.department, basic.team, basic.storeName, basic.supervisorName, basic.employeeId]
+    .filter(Boolean)
+    .join(' · ') || '기본정보를 입력해주세요.';
+}
+
 function bindCascadingOrgSelects() {
   headquarterSelect.addEventListener('change', function () {
     populateDepartments(headquarterSelect.value);
@@ -374,10 +437,12 @@ function bindCascadingOrgSelects() {
 function loadOrganizationTree() {
   if (!validateAppsScriptUrl(false)) {
     setOrgMessage('error', 'Apps Script URL을 먼저 script.js에 입력해야 조직도를 불러올 수 있습니다.');
+    showLoading(false);
     return;
   }
 
   setOrgMessage('pending', '조직도 정보를 불러오는 중입니다...');
+  showLoading(true, '영업본부·부서·팀·매장 정보를 불러오는 중입니다. 잠시만 기다려주세요.', '매장정보를 불러오는 중입니다');
 
   jsonpRequest({ mode: 'org' }, 30000)
     .then(function (data) {
@@ -388,6 +453,7 @@ function loadOrganizationTree() {
       orgTree = data.tree || {};
       populateHeadquarters();
       setOrgMessage('success', `조직도 정보를 불러왔습니다. 총 ${data.count || 0}개 매장 기준입니다.`);
+      showLoading(false);
     })
     .catch(function (error) {
       console.error(error);
@@ -396,6 +462,7 @@ function loadOrganizationTree() {
       resetSelect(departmentSelect, '영업본부를 먼저 선택해주세요', true);
       resetSelect(teamSelect, '부서명을 먼저 선택해주세요', true);
       resetSelect(storeSelect, '팀명을 먼저 선택해주세요', true);
+      showLoading(false);
     });
 }
 
@@ -482,14 +549,18 @@ function bindFileInputs() {
       return;
     }
 
-    if (files.length > MAX_FILES_PER_FIELD) {
-      alert('한 항목당 최대 ' + MAX_FILES_PER_FIELD + '장까지 첨부할 수 있습니다.');
+    const existingFiles = Array.isArray(selectedFiles[field]) ? selectedFiles[field] : [];
+    const mergedFiles = existingFiles.concat(files);
+
+    if (mergedFiles.length > MAX_FILES_PER_FIELD) {
+      alert('한 항목당 최대 ' + MAX_FILES_PER_FIELD + '장까지 첨부할 수 있습니다. 현재 ' + existingFiles.length + '장이 첨부되어 있습니다.');
       input.value = '';
       return;
     }
 
-    selectedFiles[field] = files;
-    updateFilePreview(field, files);
+    selectedFiles[field] = mergedFiles;
+    updateFilePreview(field, mergedFiles);
+    input.value = '';
   });
 
   document.addEventListener('click', function (event) {
@@ -507,9 +578,9 @@ function updateFilePreview(field, files) {
   if (row && nameEl) {
     row.classList.add('active');
     if (fileList.length === 1) {
-      nameEl.textContent = '첨부됨: ' + fileList[0].name;
+      nameEl.textContent = '첨부됨: 1장 · ' + fileList[0].name;
     } else {
-      nameEl.textContent = '첨부됨: ' + fileList.length + '장';
+      nameEl.textContent = '첨부됨: 총 ' + fileList.length + '장';
     }
   }
 }
@@ -1166,13 +1237,12 @@ function resetFormAfterSuccess() {
   if (employeeIdFull) employeeIdFull.value = '';
   resetOrgSelectsAfterSubmit();
   applyAccidentFileRule();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-  setTimeout(function () {
-    if (headquarterSelect && !headquarterSelect.disabled) headquarterSelect.focus();
-  }, 450);
+  showEntryPage(true);
 }
 
-function showLoading(show, message) {
+function showLoading(show, message, title) {
+  if (title && loadingTitle) loadingTitle.textContent = title;
+  if (!title && loadingTitle && show) loadingTitle.textContent = '제출 중입니다';
   if (message) loadingText.textContent = message;
   loadingOverlay.hidden = !show;
 }
@@ -1218,16 +1288,29 @@ function normalizeText(value) {
 }
 
 function setResult(type, html) {
-  resultMessage.className = 'result ' + type;
-  resultMessage.innerHTML = html;
+  if (resultMessage) {
+    resultMessage.className = 'result ' + type;
+    resultMessage.innerHTML = html;
+  }
+  if (entryMessage) {
+    entryMessage.className = 'result ' + type;
+    entryMessage.innerHTML = html;
+  }
   if (type === 'error') {
-    resultMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const target = evaluationPage && !evaluationPage.hidden ? resultMessage : entryMessage;
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 }
 
 function clearResult() {
-  resultMessage.className = 'result';
-  resultMessage.innerHTML = '';
+  if (resultMessage) {
+    resultMessage.className = 'result';
+    resultMessage.innerHTML = '';
+  }
+  if (entryMessage) {
+    entryMessage.className = 'result';
+    entryMessage.innerHTML = '';
+  }
 }
 
 function escapeHtml(value) {

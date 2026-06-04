@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <main class="page">
+  <main class="page" id="pageRoot">
     <section class="hero">
       <div>
         <p class="badge">ASUNG DAISO SAFETY & HEALTH</p>
@@ -19,7 +19,7 @@
       </div>
     </section>
 
-    <section class="notice card compact-card">
+    <section class="notice card compact-card" id="noticeCard">
       <h2>작성 전 확인</h2>
       <p class="section-guide">
         먼저 작성 예시를 확인한 후, 본인의 조직정보와 성명·사번을 입력하고 평가를 제출해주세요.
@@ -36,10 +36,10 @@
       </div>
     </section>
 
-    <form id="evaluationForm" class="card" novalidate>
+    <form id="evaluationForm" class="card entry-form" novalidate>
       <input type="hidden" name="evaluationPeriod" value="2026년 상반기" />
 
-      <section class="form-section">
+      <section class="form-section basic-info-section" id="basicInfoSection">
         <h2>1. 기본정보</h2>
         <p class="section-guide">
           영업본부 → 부서명 → 팀명 → 매장명 순서로 선택해주세요. 성명과 사번만 직접 입력합니다.
@@ -100,7 +100,22 @@
             <p class="field-guide">AD는 자동으로 붙습니다. 숫자만 입력해주세요.</p>
           </label>
         </div>
+
+        <div class="entry-actions">
+          <button type="button" id="startEvaluationBtn" class="start-btn">평가 시작하기</button>
+          <p class="entry-help">조직정보·성명·사번을 입력하면 평가 화면으로 이동합니다.</p>
+        </div>
+        <div id="entryMessage" class="result" aria-live="polite"></div>
       </section>
+
+      <div id="evaluationPage" class="evaluation-page" hidden>
+        <section class="selected-info-card">
+          <div>
+            <span class="selected-info-label">선택한 정보</span>
+            <strong id="selectedInfoText">기본정보를 입력해주세요.</strong>
+          </div>
+          <button type="button" id="editBasicInfoBtn" class="sub-btn small-btn">기본정보 수정</button>
+        </section>
 
       <section class="form-section">
         <h2>2. 관리감독자 업무수행 자가평가</h2>
@@ -128,13 +143,14 @@
       <button type="submit" id="submitBtn" class="submit-btn">반기평가 제출하기</button>
 
       <div id="resultMessage" class="result" aria-live="polite"></div>
+      </div>
     </form>
   </main>
 
   <div id="loadingOverlay" class="loading-overlay" hidden>
     <div class="loading-card">
       <div class="spinner" aria-hidden="true"></div>
-      <h2>제출 중입니다</h2>
+      <h2 id="loadingTitle">자료를 불러오는 중입니다</h2>
       <p id="loadingText">사진을 압축하고 자료를 저장 중입니다. 창을 닫지 말고 잠시만 기다려주세요.</p>
     </div>
   </div>
@@ -151,6 +167,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=20260604_mobile_signature_v13_2"></script>
+  <script src="script.js?v=20260604_mobile_signature_v14"></script>
 </body>
 </html>
