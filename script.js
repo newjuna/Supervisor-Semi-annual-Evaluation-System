@@ -1,15 +1,17 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v12
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v13
  *
  * 핵심 구조
  * - 화면: GitHub Pages
  * - 조직도: Google Sheets '조직도' 시트 A:D를 Apps Script에서 불러옴
  * - 저장: Apps Script → Google Sheets DB
  * - 사진/서명: Google Drive 미사용, Google Sheets 내부 _FILE_INDEX / _FILE_CHUNKS 시트에 압축 저장
+ * - 항목별 첨부사진은 최대 5장까지 등록 가능
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwLVnMAm85_P5eCJi2sOWh8Yd7SuMSbR-JoqWCK2zSYn59GgKU8rzr-KK8djtXSmJon/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
+const MAX_FILES_PER_FIELD = 5;
 
 const EVALUATION_ITEMS = [
   {
@@ -22,7 +24,7 @@ const EVALUATION_ITEMS = [
       high: '해당 매장 보유 설비의 점검 또는 유지보수 이력 확인 가능',
       low: '점검자료 없음 또는 이상사항 미조치'
     },
-    exampleSrc: 'assets/examples/example_equipment.jpg'
+    exampleSrc: 'assets/examples/example_1.png'
   },
   {
     id: 'q02',
@@ -35,7 +37,7 @@ const EVALUATION_ITEMS = [
       mid: '보호구 지급대장 6개월, TBM 실시, 신규채용 시 교육 중 1가지 미흡',
       low: '보호구 지급대장과 교육·지도 기록 모두 없음'
     },
-    exampleSrc: 'assets/examples/example_ppe_register.jpg'
+    exampleSrc: 'assets/examples/example_2.png'
   },
   {
     id: 'q03',
@@ -47,7 +49,7 @@ const EVALUATION_ITEMS = [
       high: '산업재해 발생 건 전부 즉시 보고 및 조치 완료',
       low: '미보고 또는 지연 보고가 1건이라도 발생'
     },
-    exampleSrc: 'assets/examples/example_accident_report.jpg'
+    exampleSrc: 'assets/examples/example_3.png'
   },
   {
     id: 'q04',
@@ -59,7 +61,7 @@ const EVALUATION_ITEMS = [
       high: '순회점검표 월 4회 이상 작성',
       low: '순회점검일지 미작성 월이 있음'
     },
-    exampleSrc: 'assets/examples/example_patrol_log.jpg'
+    exampleSrc: 'assets/examples/example_4.png'
   },
   {
     id: 'q05',
@@ -71,7 +73,7 @@ const EVALUATION_ITEMS = [
       high: '비상대피훈련 결과보고 1건 이상 완료',
       low: '훈련은 실시했으나 결과보고 자료 없음'
     },
-    exampleSrc: 'assets/examples/example_emergency_training.jpg'
+    exampleSrc: 'assets/examples/example_5.png'
   },
   {
     id: 'q06',
@@ -84,7 +86,7 @@ const EVALUATION_ITEMS = [
       mid: '위험성평가는 참여했으나 개선조치 완료 내역 없음',
       low: '위험성평가 미참여 또는 개선조치 미실행'
     },
-    exampleSrc: 'assets/examples/example_risk_assessment.jpg'
+    exampleSrc: 'assets/examples/example_6.png'
   },
   {
     id: 'q07',
@@ -97,6 +99,7 @@ const EVALUATION_ITEMS = [
       mid: '일부 자료 누락 또는 최신화 필요',
       low: '확인 가능한 안전보건 문서·서류·표지 없음'
     },
+    exampleSrc: 'assets/examples/example_7.png',
     guide: {
       href: './ISO가이드.pdf',
       label: '📒 ISO 가이드 PDF 보기'
@@ -108,7 +111,7 @@ const EVIDENCE_FILE_FIELDS = EVALUATION_ITEMS.map(function (item) {
   return {
     name: 'evidence_' + item.id,
     label: '판단 증빙사진 - ' + item.title,
-    hint: '중 또는 하로 선택한 경우 필요 시 현장 사진 또는 관련 자료를 첨부해주세요.',
+    hint: '필요한 경우 사진을 여러 장 첨부할 수 있습니다. 최대 5장까지 가능합니다.',
     required: false,
     evidenceOnly: true,
     itemId: item.id
@@ -322,7 +325,7 @@ function createFilePickerHtml(field) {
 
   return `
     <div class="photo-picker" data-file-picker="${escapeHtml(field.name)}">
-      <input class="file-input-hidden" id="${inputId}" type="file" accept="image/*" data-file-field="${escapeHtml(field.name)}" />
+      <input class="file-input-hidden" id="${inputId}" type="file" accept="image/*" multiple data-file-field="${escapeHtml(field.name)}" />
       <div class="${actionClass}">
         <label class="photo-btn attach" for="${inputId}">📎 첨부</label>
         ${secondActionHtml}
@@ -465,18 +468,28 @@ function bindFileInputs() {
     if (!input.matches('[data-file-field]')) return;
 
     const field = input.getAttribute('data-file-field');
-    const file = input.files && input.files[0] ? input.files[0] : null;
+    const files = Array.from(input.files || []);
 
-    if (!file) return;
+    if (!files.length) return;
 
-    if (!file.type || !file.type.startsWith('image/')) {
+    const invalid = files.find(function (file) {
+      return !file.type || !file.type.startsWith('image/');
+    });
+
+    if (invalid) {
       alert('이미지 파일만 첨부할 수 있습니다.');
       input.value = '';
       return;
     }
 
-    selectedFiles[field] = file;
-    updateFilePreview(field, file.name);
+    if (files.length > MAX_FILES_PER_FIELD) {
+      alert('한 항목당 최대 ' + MAX_FILES_PER_FIELD + '장까지 첨부할 수 있습니다.');
+      input.value = '';
+      return;
+    }
+
+    selectedFiles[field] = files;
+    updateFilePreview(field, files);
   });
 
   document.addEventListener('click', function (event) {
@@ -486,13 +499,18 @@ function bindFileInputs() {
   });
 }
 
-function updateFilePreview(field, fileName) {
+function updateFilePreview(field, files) {
   const row = document.getElementById(field + '_preview');
   const nameEl = document.querySelector(`[data-preview-name="${field}"]`);
+  const fileList = Array.isArray(files) ? files : (files ? [files] : []);
 
   if (row && nameEl) {
     row.classList.add('active');
-    nameEl.textContent = '첨부됨: ' + fileName;
+    if (fileList.length === 1) {
+      nameEl.textContent = '첨부됨: ' + fileList[0].name;
+    } else {
+      nameEl.textContent = '첨부됨: ' + fileList.length + '장';
+    }
   }
 }
 
@@ -807,9 +825,10 @@ async function collectAttachments(submissionId) {
   const attachments = [];
 
   for (const field of ALL_FILE_FIELDS) {
-    const file = selectedFiles[field.name];
+    const raw = selectedFiles[field.name];
+    const files = Array.isArray(raw) ? raw : (raw ? [raw] : []);
 
-    if (!file) {
+    if (!files.length) {
       attachments.push({
         field: field.name,
         label: field.label,
@@ -818,18 +837,24 @@ async function collectAttachments(submissionId) {
       continue;
     }
 
-    const processed = await processImageFile(file);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const processed = await processImageFile(file);
+      const suffix = files.length > 1 ? '_' + (i + 1) : '';
 
-    attachments.push({
-      field: field.name,
-      label: field.label,
-      hasFile: true,
-      originalName: file.name,
-      fileName: `${submissionId}_${field.name}_${sanitizeFileName(file.name)}`,
-      mimeType: processed.mimeType,
-      size: processed.size,
-      dataUrl: processed.dataUrl
-    });
+      attachments.push({
+        field: field.name,
+        label: field.label + (files.length > 1 ? ' ' + (i + 1) + '/' + files.length : ''),
+        hasFile: true,
+        fileIndex: i + 1,
+        fileCount: files.length,
+        originalName: file.name,
+        fileName: `${submissionId}_${field.name}${suffix}_${sanitizeFileName(file.name)}`,
+        mimeType: processed.mimeType,
+        size: processed.size,
+        dataUrl: processed.dataUrl
+      });
+    }
   }
 
   return attachments;
@@ -1141,6 +1166,10 @@ function resetFormAfterSuccess() {
   if (employeeIdFull) employeeIdFull.value = '';
   resetOrgSelectsAfterSubmit();
   applyAccidentFileRule();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(function () {
+    if (headquarterSelect && !headquarterSelect.disabled) headquarterSelect.focus();
+  }, 450);
 }
 
 function showLoading(show, message) {
