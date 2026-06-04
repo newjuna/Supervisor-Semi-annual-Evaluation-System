@@ -1,5 +1,5 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v9
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v10
  *
  * 핵심 구조
  * - 화면: GitHub Pages
@@ -9,7 +9,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyKd0bVNBYk6aPD1ifGWtfsf3yjCnfjBCBg0W8fQ-EUO-u3dnigHhLo9Y9NBo5qCk-3/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 
 const EVALUATION_ITEMS = [
   {
@@ -99,7 +99,7 @@ const EVALUATION_ITEMS = [
     },
     guide: {
       href: './ISO가이드.pdf',
-      label: '📄 ISO 가이드 PDF 보기'
+      label: '📒 ISO 가이드 PDF 보기'
     }
   }
 ];
@@ -219,10 +219,6 @@ function renderEvaluationItems() {
       `<div><strong>하</strong><span>${escapeHtml(item.criteria.low)}</span></div>`
     ].join('');
 
-    const guideHtml = item.guide
-      ? `<div class="guide-link-box"><a class="ghost-btn" href="${escapeHtml(item.guide.href)}" target="_blank" rel="noopener">${escapeHtml(item.guide.label)}</a></div>`
-      : '';
-
     const midOptionHtml = hasMid
       ? `<label class="middle-option"><input type="radio" name="${item.id}_result" value="중" /> 중</label>`
       : '';
@@ -233,7 +229,8 @@ function renderEvaluationItems() {
         label: '첨부사진 - ' + item.title,
         hint: '해당 항목 관련 사진이나 자료가 있으면 첨부해주세요.',
         required: false,
-        exampleSrc: item.exampleSrc || ''
+        exampleSrc: item.exampleSrc || '',
+        guide: item.guide || null
       })}
     </div>`;
 
@@ -241,7 +238,6 @@ function renderEvaluationItems() {
       <div class="check-item" data-item-card="${item.id}">
         <div class="item-title">${index + 1}. ${escapeHtml(item.title)}</div>
         <p class="item-desc">${escapeHtml(item.desc)}</p>
-        ${guideHtml}
         <div class="score-badge-row">
           <span class="weight-badge">비중 ${escapeHtml(item.weight)}</span>
           <span class="score-badge">${escapeHtml(scoreText)}</span>
@@ -270,14 +266,21 @@ function renderAttachmentCards() {
 function createFilePickerHtml(field) {
   const inputId = field.name + '_file';
   const hasExample = !!field.exampleSrc;
-  const actionClass = hasExample ? 'photo-actions with-example' : 'photo-actions no-example';
+  const hasGuide = !!(field.guide && field.guide.href);
+  const hasSecondAction = hasExample || hasGuide;
+  const actionClass = hasSecondAction ? 'photo-actions with-example' : 'photo-actions no-example';
+  const secondActionHtml = hasExample
+    ? `<button type="button" class="example-btn" data-example-src="${escapeHtml(field.exampleSrc)}" data-example-title="${escapeHtml(field.label)}" data-example-caption="${escapeHtml(field.hint)}">📒 예시</button>`
+    : (hasGuide
+      ? `<a class="example-btn guide-view-btn" href="${escapeHtml(field.guide.href)}" target="_blank" rel="noopener">${escapeHtml(field.guide.label)}</a>`
+      : '');
 
   return `
     <div class="photo-picker" data-file-picker="${escapeHtml(field.name)}">
       <input class="file-input-hidden" id="${inputId}" type="file" accept="image/*" data-file-field="${escapeHtml(field.name)}" />
       <div class="${actionClass}">
         <label class="photo-btn attach" for="${inputId}">📎 첨부</label>
-        ${hasExample ? `<button type="button" class="example-btn" data-example-src="${escapeHtml(field.exampleSrc)}" data-example-title="${escapeHtml(field.label)}" data-example-caption="${escapeHtml(field.hint)}">📒 예시</button>` : ''}
+        ${secondActionHtml}
       </div>
       <div class="preview-row" id="${field.name}_preview">
         <span data-preview-name="${escapeHtml(field.name)}"></span>
