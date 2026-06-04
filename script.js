@@ -9,7 +9,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0_eBSRpnQ3EeX41wOBmCVTrKhVasUGyWfEMVi8vslMWdxVhx8N_Qc9F_k2uFAac2w/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyKd0bVNBYk6aPD1ifGWtfsf3yjCnfjBCBg0W8fQ-EUO-u3dnigHhLo9Y9NBo5qCk-3/exec';
 
 const EVALUATION_ITEMS = [
   {
