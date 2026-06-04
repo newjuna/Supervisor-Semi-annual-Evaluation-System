@@ -210,6 +210,41 @@ select:disabled {
   color: #9ca3af;
 }
 
+.employee-id-wrap {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.employee-prefix {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  padding: 0 16px;
+  border: 1px solid var(--gray-300);
+  border-right: 0;
+  border-radius: 15px 0 0 15px;
+  background: #f1f5f9;
+  color: var(--navy);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.employee-id-wrap input {
+  margin-top: 0;
+  border-radius: 0 15px 15px 0;
+}
+
+.field-guide {
+  margin: 7px 0 0;
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 .required-mark {
   color: var(--red);
 }

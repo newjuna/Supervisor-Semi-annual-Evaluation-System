@@ -83,7 +83,21 @@
 
           <label>
             사번 <span class="required-mark">*</span>
-            <input type="text" name="employeeId" placeholder="사번 입력" autocomplete="off" required />
+            <div class="employee-id-wrap">
+              <span class="employee-prefix">AD</span>
+              <input
+                type="tel"
+                name="employeeIdNumber"
+                id="employeeIdInput"
+                placeholder="숫자만 입력"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                autocomplete="off"
+                required
+              />
+              <input type="hidden" name="employeeId" id="employeeIdFull" />
+            </div>
+            <p class="field-guide">AD는 자동으로 붙습니다. 숫자만 입력해주세요.</p>
           </label>
         </div>
       </section>

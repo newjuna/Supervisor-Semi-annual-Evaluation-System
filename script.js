@@ -1,5 +1,5 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v11
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v12
  *
  * 핵심 구조
  * - 화면: GitHub Pages
@@ -9,7 +9,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyb-xXHuedFVtZkW_QXHy0dDYNX667eRnEv-2Ehji3DWh8djRy7MlavlKvY2yNXAw-T/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 
 const EVALUATION_ITEMS = [
   {
@@ -132,6 +132,8 @@ const headquarterSelect = document.getElementById('headquarterSelect');
 const departmentSelect = document.getElementById('departmentSelect');
 const teamSelect = document.getElementById('teamSelect');
 const storeSelect = document.getElementById('storeSelect');
+const employeeIdInput = document.getElementById('employeeIdInput');
+const employeeIdFull = document.getElementById('employeeIdFull');
 const accidentOccurredSelect = null;
 
 const signaturePad = document.getElementById('signaturePad');
@@ -155,6 +157,7 @@ window.addEventListener('DOMContentLoaded', function () {
   bindEvaluationResultChange();
   bindFileInputs();
   bindExampleModal();
+  bindEmployeeIdInput();
   ensureSubmitModal();
   setupSignaturePad();
   loadOrganizationTree();
@@ -174,6 +177,7 @@ form.addEventListener('submit', async function (event) {
   if (!validateBasicRequired()) return;
   if (!validateSignature()) return;
 
+  updateEmployeeIdFull();
   const basicForConfirm = getBasicInfoFromForm();
   const confirmed = await confirmSubmissionDetails(basicForConfirm);
   if (!confirmed) return;
@@ -639,7 +643,7 @@ function getBasicInfoFromForm() {
     team: formData.get('team') || '',
     storeName: formData.get('storeName') || '',
     supervisorName: normalizeText(formData.get('supervisorName') || ''),
-    employeeId: normalizeText(formData.get('employeeId') || '')
+    employeeId: getFullEmployeeId()
   };
 }
 
@@ -1086,8 +1090,7 @@ function validateBasicRequired() {
     [departmentSelect, '부서명을 선택해주세요.'],
     [teamSelect, '팀명을 선택해주세요.'],
     [storeSelect, '매장명을 선택해주세요.'],
-    [form.elements.supervisorName, '관리감독자 성명을 입력해주세요.'],
-    [form.elements.employeeId, '사번을 입력해주세요.']
+    [form.elements.supervisorName, '관리감독자 성명을 입력해주세요.']
   ];
 
   for (const [el, message] of requiredFields) {
@@ -1096,6 +1099,12 @@ function validateBasicRequired() {
       el.focus();
       return false;
     }
+  }
+
+  if (!getEmployeeIdDigits()) {
+    setResult('error', '사번 숫자를 입력해주세요. AD는 자동으로 붙습니다.');
+    if (employeeIdInput) employeeIdInput.focus();
+    return false;
   }
 
   return true;
@@ -1129,6 +1138,7 @@ function resetFormAfterSuccess() {
     applyEvaluationItemState(item.id);
   });
   clearSignature();
+  if (employeeIdFull) employeeIdFull.value = '';
   resetOrgSelectsAfterSubmit();
   applyAccidentFileRule();
 }
@@ -1136,6 +1146,33 @@ function resetFormAfterSuccess() {
 function showLoading(show, message) {
   if (message) loadingText.textContent = message;
   loadingOverlay.hidden = !show;
+}
+
+
+function bindEmployeeIdInput() {
+  if (!employeeIdInput) return;
+
+  employeeIdInput.addEventListener('input', function () {
+    employeeIdInput.value = getEmployeeIdDigits();
+    updateEmployeeIdFull();
+  });
+
+  employeeIdInput.addEventListener('blur', updateEmployeeIdFull);
+  updateEmployeeIdFull();
+}
+
+function getEmployeeIdDigits() {
+  if (!employeeIdInput) return '';
+  return String(employeeIdInput.value || '').replace(/\D/g, '');
+}
+
+function getFullEmployeeId() {
+  const digits = getEmployeeIdDigits();
+  return digits ? 'AD' + digits : '';
+}
+
+function updateEmployeeIdFull() {
+  if (employeeIdFull) employeeIdFull.value = getFullEmployeeId();
 }
 
 function createSubmissionId() {
