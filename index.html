@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>관리감독자 반기 업무수행 평가 시스템</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <p class="badge">ASUNG DAISO SAFETY & HEALTH</p>
+        <h1>관리감독자 반기 업무수행 평가</h1>
+        <p class="subtitle">
+          중대재해처벌법 반기 이행평가를 위해 2026년 1월~6월 안전보건 업무수행 결과를 자가평가하고,
+          관련 증빙자료를 첨부하여 제출해주세요.
+        </p>
+      </div>
+    </section>
+
+    <section class="notice card">
+      <h2>작성 전 확인사항</h2>
+      <ol>
+        <li>먼저 아래 <strong>작성 예시 PDF</strong>를 확인한 후 작성해주세요.</li>
+        <li>평가 기준기간은 <strong>2026년 1월 1일 ~ 6월 30일</strong>입니다.</li>
+        <li>조직정보는 구글시트 <strong>조직도</strong> 시트 기준으로 선택합니다.</li>
+        <li>성명과 사번은 본인이 직접 입력합니다.</li>
+        <li>사진은 구글드라이브에 저장하지 않고, 구글시트 내부 저장소에 압축 저장됩니다.</li>
+      </ol>
+
+      <div class="sample-box">
+        <div>
+          <strong>작성 예시 PDF</strong>
+          <p>평가표 작성 방식과 증빙사진 첨부 예시를 확인할 수 있습니다.</p>
+        </div>
+        <div class="sample-actions">
+          <a class="ghost-btn" href="assets/sample_evaluation.pdf" target="_blank" rel="noopener">PDF 예시 보기</a>
+          <a class="ghost-btn" href="assets/sample_evaluation.pdf" download>PDF 다운로드</a>
+        </div>
+      </div>
+    </section>
+
+    <form id="evaluationForm" class="card">
+      <input type="hidden" name="evaluationPeriod" value="2026년 상반기" />
+
+      <section class="form-section">
+        <h2>1. 기본정보</h2>
+        <p class="section-guide">
+          영업본부 → 부서명 → 팀명 → 매장명 순서로 선택해주세요. 매장명 오기입 방지를 위해 직접 입력이 아닌 선택 방식으로 운영됩니다.
+        </p>
+
+        <div id="orgLoadMessage" class="inline-message pending">조직도 정보를 불러오는 중입니다...</div>
+
+        <div class="grid">
+          <label>
+            영업본부 <span class="required-mark">*</span>
+            <select name="headquarter" id="headquarterSelect" required disabled>
+              <option value="">조직도 불러오는 중...</option>
+            </select>
+          </label>
+
+          <label>
+            부서명 <span class="required-mark">*</span>
+            <select name="department" id="departmentSelect" required disabled>
+              <option value="">영업본부를 먼저 선택해주세요</option>
+            </select>
+          </label>
+
+          <label>
+            팀명 <span class="required-mark">*</span>
+            <select name="team" id="teamSelect" required disabled>
+              <option value="">부서명을 먼저 선택해주세요</option>
+            </select>
+          </label>
+
+          <label>
+            매장명 <span class="required-mark">*</span>
+            <select name="storeName" id="storeSelect" required disabled>
+              <option value="">팀명을 먼저 선택해주세요</option>
+            </select>
+          </label>
+
+          <label>
+            관리감독자 성명 <span class="required-mark">*</span>
+            <input type="text" name="supervisorName" placeholder="성명 입력" autocomplete="name" required />
+          </label>
+
+          <label>
+            사번 <span class="required-mark">*</span>
+            <input type="text" name="employeeId" placeholder="사번 입력" autocomplete="off" required />
+          </label>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>2. 관리감독자 업무수행 자가평가</h2>
+        <p class="section-guide">
+          각 항목별 실행내역은 실제 수행한 내용을 기준으로 작성해주세요.
+          예: “상반기 위험성평가 완료”, “순회점검일지 월별 확인”, “보호구 착용 지도” 등
+        </p>
+
+        <div id="evaluationItems" class="check-list"></div>
+      </section>
+
+      <section class="form-section">
+        <h2>3. 증빙자료 사진 첨부</h2>
+        <p class="section-guide">
+          휴대폰 촬영본도 가능합니다. 제출 시 이미지는 자동으로 축소·압축되며, 구글시트 내부 저장소에 저장됩니다.
+          DB 시트에는 <strong>사진 보기</strong> 링크가 생성됩니다.
+        </p>
+
+        <div class="grid single-gap">
+          <label>
+            상반기 관리 매장 산업재해 발생 여부 <span class="required-mark">*</span>
+            <select name="accidentOccurred" id="accidentOccurred" required>
+              <option value="">선택해주세요</option>
+              <option value="없음">없음</option>
+              <option value="있음">있음</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="attachment-list">
+          <label>
+            기계·기구 및 설비 점검 / 유지보수 이력
+            <input type="file" name="file_equipment" accept="image/*" capture="environment" />
+            <span class="hint">예: 리프트, 승강기, 소방설비 등 점검·유지보수 이력</span>
+          </label>
+
+          <label>
+            위험성평가 자료 <span class="required-mark">*</span>
+            <input type="file" name="file_riskAssessment" accept="image/*" capture="environment" required />
+            <span class="hint">예: 정기 또는 수시 위험성평가 결과표</span>
+          </label>
+
+          <label>
+            비상대응훈련 자료 <span class="required-mark">*</span>
+            <input type="file" name="file_emergencyTraining" accept="image/*" capture="environment" required />
+            <span class="hint">예: 비상대응훈련 결과표 또는 훈련 사진</span>
+          </label>
+
+          <label>
+            안전보호구 지급대장
+            <input type="file" name="file_ppeRegister" accept="image/*" capture="environment" />
+            <span class="hint">예: 안전모, 장갑 등 보호구 지급대장</span>
+          </label>
+
+          <label>
+            순회점검일지 <span class="required-mark">*</span>
+            <input type="file" name="file_patrolLog" accept="image/*" capture="environment" required />
+            <span class="hint">예: 1~6월 중 작성한 순회점검일지</span>
+          </label>
+
+          <label id="accidentFileLabel" class="conditional-disabled">
+            산업재해조사표 또는 수시위험성평가 자료
+            <input type="file" name="file_accidentReport" id="accidentReportFile" accept="image/*" capture="environment" disabled />
+            <span class="hint">상반기 산업재해 발생 매장이 있는 경우 필수 첨부</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="form-section">
+        <h2>4. 종합 평가결과</h2>
+
+        <label>
+          종합 의견 <span class="required-mark">*</span>
+          <textarea name="overallComment" rows="5" placeholder="상반기 업무수행 결과, 미흡사항, 하반기 보완계획 등을 간략히 작성해주세요." required></textarea>
+        </label>
+
+        <label class="confirm-check">
+          <input type="checkbox" name="confirmAccuracy" value="확인" required />
+          위 내용은 2026년 상반기 안전보건 업무수행 결과를 기준으로 작성하였음을 확인합니다.
+        </label>
+      </section>
+
+      <button type="submit" id="submitBtn">반기평가 제출하기</button>
+
+      <div id="resultMessage" class="result" aria-live="polite"></div>
+    </form>
+  </main>
+
+  <script src="script.js?v=20260604_sheet_image_org"></script>
+</body>
+</html>
