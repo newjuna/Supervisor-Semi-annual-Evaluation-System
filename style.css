@@ -819,3 +819,51 @@ select:disabled {
   border-color: #c7d2fe;
   color: #3730a3;
 }
+
+
+/* v9: 첨부/예시 버튼 크기 통일 */
+.photo-actions,
+.photo-actions.with-example {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.photo-actions.no-example {
+  grid-template-columns: 1fr;
+}
+
+.photo-btn,
+.example-btn {
+  width: 100%;
+  min-height: 52px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.example-btn {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+
+@media (max-width: 720px) {
+  .photo-actions,
+  .photo-actions.with-example {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .photo-actions.no-example {
+    grid-template-columns: 1fr;
+  }
+
+  .photo-btn,
+  .example-btn {
+    min-height: 54px;
+    font-size: 15px;
+  }
+}

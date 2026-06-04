@@ -1,5 +1,5 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v8
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v9
  *
  * 핵심 구조
  * - 화면: GitHub Pages
@@ -9,7 +9,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz0_eBSRpnQ3EeX41wOBmCVTrKhVasUGyWfEMVi8vslMWdxVhx8N_Qc9F_k2uFAac2w/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 
 const EVALUATION_ITEMS = [
   {
@@ -186,9 +186,10 @@ form.addEventListener('submit', async function (event) {
     const status = await waitForSaveStatus(payload.submissionId);
 
     if (status && status.success) {
+      const displayScore = formatScoreForDisplay(status.score || payload.score);
       setResult(
         'success',
-        `제출 완료되었습니다.<br>제출자: ${escapeHtml(payload.basic.supervisorName)} / 자동점수: ${status.score || payload.score}점`
+        `제출 완료되었습니다.<br>제출자: ${escapeHtml(payload.basic.supervisorName)} / 환산점수: ${displayScore}점`
       );
       resetFormAfterSuccess();
     } else {
@@ -269,14 +270,14 @@ function renderAttachmentCards() {
 function createFilePickerHtml(field) {
   const inputId = field.name + '_file';
   const hasExample = !!field.exampleSrc;
-  const actionClass = hasExample ? 'photo-actions with-example' : 'photo-actions';
+  const actionClass = hasExample ? 'photo-actions with-example' : 'photo-actions no-example';
 
   return `
     <div class="photo-picker" data-file-picker="${escapeHtml(field.name)}">
       <input class="file-input-hidden" id="${inputId}" type="file" accept="image/*" data-file-field="${escapeHtml(field.name)}" />
       <div class="${actionClass}">
         <label class="photo-btn attach" for="${inputId}">📎 첨부</label>
-        ${hasExample ? `<button type="button" class="example-btn" data-example-src="${escapeHtml(field.exampleSrc)}" data-example-title="${escapeHtml(field.label)}" data-example-caption="${escapeHtml(field.hint)}">👀 예시</button>` : ''}
+        ${hasExample ? `<button type="button" class="example-btn" data-example-src="${escapeHtml(field.exampleSrc)}" data-example-title="${escapeHtml(field.label)}" data-example-caption="${escapeHtml(field.hint)}">📒 예시</button>` : ''}
       </div>
       <div class="preview-row" id="${field.name}_preview">
         <span data-preview-name="${escapeHtml(field.name)}"></span>
@@ -742,15 +743,13 @@ function calculateScore(items) {
   let rawScore = 0;
   let maxScore = 0;
 
-  const itemMeta = {};
-  EVALUATION_ITEMS.forEach(function (item) {
-    itemMeta[item.id] = item;
+  const itemResultMap = {};
+  (items || []).forEach(function (item) {
+    if (item && item.id) itemResultMap[item.id] = item.result || '상';
   });
 
-  items.forEach(function (item) {
-    const meta = itemMeta[item.id];
-    if (!meta) return;
-
+  EVALUATION_ITEMS.forEach(function (meta) {
+    const result = itemResultMap[meta.id] || '상';
     const highScore = Number(meta.scores.high) || 0;
     const midScore = meta.scores.mid === null || meta.scores.mid === undefined || meta.scores.mid === ''
       ? null
@@ -758,13 +757,13 @@ function calculateScore(items) {
 
     maxScore += highScore;
 
-    if (item.result === '상') {
+    if (result === '상') {
       highCount += 1;
       rawScore += highScore;
-    } else if (item.result === '중') {
+    } else if (result === '중') {
       midCount += 1;
       rawScore += midScore === null ? 0 : midScore;
-    } else if (item.result === '하') {
+    } else if (result === '하') {
       lowCount += 1;
       rawScore += Number(meta.scores.low) || 0;
     }
@@ -773,6 +772,12 @@ function calculateScore(items) {
   const score = maxScore === 0 ? 0 : Math.round((rawScore / maxScore) * 1000) / 10;
 
   return { score, rawScore, maxScore, highCount, midCount, lowCount };
+}
+
+function formatScoreForDisplay(value) {
+  const number = Number(value);
+  if (!isFinite(number)) return value || '';
+  return Number.isInteger(number) ? String(number) : String(Math.round(number * 10) / 10);
 }
 function postPayloadByHiddenForm(payload) {
   return new Promise(function (resolve, reject) {
