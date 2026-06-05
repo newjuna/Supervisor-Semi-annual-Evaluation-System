@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyiAuyW8GWHerxGDcxOkxYdInhurSQr_fg1K2XfgRwSHpTSrimCaPOjwnhSwg1FKcrX/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const MAX_FILES_PER_FIELD = 5;
 
 const EVALUATION_ITEMS = [
@@ -1335,4 +1335,332 @@ function debounce(fn, delay) {
       fn.apply(null, args);
     }, delay);
   };
+}
+
+/* ==============================
+   v19 통합 시스템 추가 스크립트
+   - 반기평가 기능은 기존 로직 유지
+   - 관리감독자 임명/변경 기능 추가
+   ============================== */
+let appointmentStoreSeq = 0;
+
+window.addEventListener('DOMContentLoaded', function () {
+  initV19ModuleSwitch();
+  initAppointmentModule();
+});
+
+function initV19ModuleSwitch() {
+  const evaluationModule = document.getElementById('evaluationModule');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
+  const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
+  if (!evaluationModule || !appointmentModule || !showEvaluationBtn || !showAppointmentBtn) return;
+
+  showEvaluationBtn.addEventListener('click', function () {
+    evaluationModule.hidden = false;
+    appointmentModule.hidden = true;
+    showEvaluationBtn.classList.add('active');
+    showAppointmentBtn.classList.remove('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  showAppointmentBtn.addEventListener('click', function () {
+    evaluationModule.hidden = true;
+    appointmentModule.hidden = false;
+    showAppointmentBtn.classList.add('active');
+    showEvaluationBtn.classList.remove('active');
+    ensureAppointmentStoreRow();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+}
+
+function initAppointmentModule() {
+  const formEl = document.getElementById('appointmentForm');
+  const addBtn = document.getElementById('addAppointmentStoreBtn');
+  const empInput = document.getElementById('appointmentEmployeeIdInput');
+  const newBtn = document.getElementById('newAppointmentBtn');
+
+  if (addBtn) addBtn.addEventListener('click', addAppointmentStoreRow);
+  if (newBtn) newBtn.addEventListener('click', resetAppointmentForm);
+  if (empInput) {
+    empInput.addEventListener('input', function () {
+      empInput.value = String(empInput.value || '').replace(/\D/g, '');
+      const full = document.getElementById('appointmentEmployeeIdFull');
+      if (full) full.value = empInput.value ? 'AD' + empInput.value : '';
+    });
+  }
+  if (formEl) formEl.addEventListener('submit', handleAppointmentSubmit);
+}
+
+function ensureAppointmentStoreRow() {
+  const container = document.getElementById('appointmentStoreList');
+  if (container && !container.children.length) addAppointmentStoreRow();
+}
+
+function addAppointmentStoreRow() {
+  const container = document.getElementById('appointmentStoreList');
+  if (!container) return;
+  appointmentStoreSeq += 1;
+  const id = 'appointmentStore_' + appointmentStoreSeq;
+  const card = document.createElement('div');
+  card.className = 'appointment-store-card';
+  card.dataset.appointmentStoreRow = id;
+  card.innerHTML = `
+    <div class="appointment-store-head">
+      <strong>임명 매장 ${container.children.length + 1}</strong>
+      ${container.children.length > 0 ? '<button type="button" class="remove-appointment-store">삭제</button>' : ''}
+    </div>
+    <div class="appointment-store-grid">
+      <label>매장구분 <span class="required-mark">*</span><select data-appt="headquarter"><option value="">매장구분 선택</option></select></label>
+      <label>부서명 <span class="required-mark">*</span><select data-appt="department" disabled><option value="">매장구분을 먼저 선택</option></select></label>
+      <label>팀명 <span class="required-mark">*</span><select data-appt="team" disabled><option value="">부서명을 먼저 선택</option></select></label>
+      <label>매장명 <span class="required-mark">*</span><select data-appt="storeName" disabled><option value="">팀명을 먼저 선택</option></select></label>
+    </div>`;
+  container.appendChild(card);
+
+  const hq = card.querySelector('[data-appt="headquarter"]');
+  const dept = card.querySelector('[data-appt="department"]');
+  const team = card.querySelector('[data-appt="team"]');
+  const store = card.querySelector('[data-appt="storeName"]');
+
+  fillAppointmentSelect(hq, Object.keys(orgTree || {}).sort(koreanSort), '매장구분 선택', !Object.keys(orgTree || {}).length);
+  hq.addEventListener('change', function () {
+    const departments = hq.value && orgTree[hq.value] ? Object.keys(orgTree[hq.value]).sort(koreanSort) : [];
+    fillAppointmentSelect(dept, departments, '부서명 선택', departments.length === 0);
+    fillAppointmentSelect(team, [], '부서명을 먼저 선택', true);
+    fillAppointmentSelect(store, [], '팀명을 먼저 선택', true);
+  });
+  dept.addEventListener('change', function () {
+    const teams = hq.value && dept.value && orgTree[hq.value] && orgTree[hq.value][dept.value]
+      ? Object.keys(orgTree[hq.value][dept.value]).sort(koreanSort)
+      : [];
+    fillAppointmentSelect(team, teams, '팀명 선택', teams.length === 0);
+    fillAppointmentSelect(store, [], '팀명을 먼저 선택', true);
+  });
+  team.addEventListener('change', function () {
+    const stores = hq.value && dept.value && team.value && orgTree[hq.value] && orgTree[hq.value][dept.value] && orgTree[hq.value][dept.value][team.value]
+      ? orgTree[hq.value][dept.value][team.value].slice().sort(koreanSort)
+      : [];
+    fillAppointmentSelect(store, stores, '매장명 선택', stores.length === 0);
+  });
+
+  const removeBtn = card.querySelector('.remove-appointment-store');
+  if (removeBtn) removeBtn.addEventListener('click', function () {
+    card.remove();
+    renumberAppointmentStoreRows();
+  });
+}
+
+function refreshAppointmentRows() {
+  document.querySelectorAll('[data-appointment-store-row]').forEach(function (row) {
+    const hq = row.querySelector('[data-appt="headquarter"]');
+    if (!hq || hq.value) return;
+    fillAppointmentSelect(hq, Object.keys(orgTree || {}).sort(koreanSort), '매장구분 선택', !Object.keys(orgTree || {}).length);
+  });
+}
+
+function renumberAppointmentStoreRows() {
+  document.querySelectorAll('.appointment-store-card').forEach(function (row, index) {
+    const title = row.querySelector('.appointment-store-head strong');
+    if (title) title.textContent = '임명 매장 ' + (index + 1);
+  });
+}
+
+function fillAppointmentSelect(select, options, placeholder, disabled) {
+  if (!select) return;
+  select.innerHTML = '';
+  const first = document.createElement('option');
+  first.value = '';
+  first.textContent = placeholder;
+  select.appendChild(first);
+  (options || []).forEach(function (value) {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = value;
+    select.appendChild(opt);
+  });
+  select.disabled = !!disabled;
+}
+
+async function handleAppointmentSubmit(event) {
+  event.preventDefault();
+  const resultEl = document.getElementById('appointmentResultMessage');
+  if (resultEl) resultEl.textContent = '';
+
+  if (!validateAppsScriptUrl()) return;
+  const name = normalizeText(document.getElementById('appointmentName').value || '');
+  const digits = String(document.getElementById('appointmentEmployeeIdInput').value || '').replace(/\D/g, '');
+  const employeeId = digits ? 'AD' + digits : '';
+  if (!name) return setAppointmentResult('error', '관리감독자 성명을 입력해주세요.');
+  if (!employeeId) return setAppointmentResult('error', '사번 숫자를 입력해주세요. AD는 자동으로 붙습니다.');
+
+  const stores = collectAppointmentStores();
+  if (!stores.length) return setAppointmentResult('error', '임명할 매장을 1개 이상 선택해주세요.');
+
+  const confirmed = await showSubmitModal({
+    type: 'confirm',
+    title: '임명 정보 확인',
+    html: `<div class="modal-info-box">
+      <div><b>성명</b><span>${escapeHtml(name)}</span></div>
+      <div><b>사번</b><span>${escapeHtml(employeeId)}</span></div>
+      <div><b>매장 수</b><span>${stores.length}개</span></div>
+      <div><b>매장</b><span>${escapeHtml(stores.map(s => s.storeName).join(', '))}</span></div>
+    </div><p class="modal-small-text">기존 선임자가 있는 매장은 해임 처리 후 신규 선임됩니다.</p>`,
+    confirmText: '임명장 생성',
+    cancelText: '수정하기'
+  });
+  if (!confirmed) return;
+
+  showLoading(true, '기존 선임 내역을 확인하고 있습니다.', '임명장 생성 준비 중');
+  try {
+    const conflict = await jsonpRequest({
+      mode: 'appointmentConflicts',
+      employeeId,
+      supervisorName: name,
+      storeNames: stores.map(s => s.storeName).join('|')
+    }, 30000);
+    if (conflict && conflict.success && (conflict.personConflict || (conflict.storeConflicts || []).length)) {
+      const lines = [];
+      if (conflict.personConflict) lines.push(`동일 사번 기존 선임: ${conflict.personConflict.storeName || ''}`);
+      (conflict.storeConflicts || []).slice(0, 5).forEach(c => lines.push(`${c.storeName}: ${c.supervisorName || ''} ${c.employeeId || ''}`));
+      const ok = await showSubmitModal({
+        type: 'confirm',
+        title: '기존 선임 내역 확인',
+        html: `기존 선임 내역이 확인되었습니다.<br>계속 진행하면 기존 내역은 해임 처리됩니다.<br><br><div class="modal-info-box"><div><b>확인내용</b><span>${escapeHtml(lines.join(' / '))}</span></div></div>`,
+        confirmText: '계속 진행',
+        cancelText: '취소'
+      });
+      if (!ok) { showLoading(false); return; }
+    }
+
+    const submissionId = createAppointmentSubmissionId();
+    const payload = { type: 'appointment', submissionId, person: { name, employeeId }, stores, userAgent: navigator.userAgent || '' };
+    showLoading(true, '임명장 PDF를 생성하고 있습니다. 창을 닫지 말고 기다려주세요.', '임명장 생성 중');
+    await postPayloadByHiddenForm(payload);
+    const status = await waitForAppointmentStatus(submissionId);
+    showLoading(false);
+    if (status && status.success) displayAppointmentResults(status.results || []);
+  } catch (err) {
+    showLoading(false);
+    setAppointmentResult('error', err.message || String(err));
+  }
+}
+
+function collectAppointmentStores() {
+  const rows = [];
+  document.querySelectorAll('.appointment-store-card').forEach(function (row) {
+    const headquarter = row.querySelector('[data-appt="headquarter"]').value;
+    const department = row.querySelector('[data-appt="department"]').value;
+    const team = row.querySelector('[data-appt="team"]').value;
+    const storeName = row.querySelector('[data-appt="storeName"]').value;
+    if (headquarter && department && team && storeName) rows.push({ headquarter, department, team, storeName });
+  });
+  return rows;
+}
+
+function setAppointmentResult(type, msg) {
+  const resultEl = document.getElementById('appointmentResultMessage');
+  if (!resultEl) return;
+  resultEl.className = 'result ' + type;
+  resultEl.textContent = msg;
+}
+
+function createAppointmentSubmissionId() {
+  const random = Math.random().toString(36).slice(2, 10);
+  return 'AP-' + new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14) + '-' + random;
+}
+
+function waitForAppointmentStatus(submissionId) {
+  const started = Date.now();
+  const timeoutMs = 120000;
+  const intervalMs = 2200;
+  return new Promise(function (resolve, reject) {
+    function poll() {
+      jsonpRequest({ mode: 'appointmentStatus', submissionId }, 25000)
+        .then(function (data) {
+          if (data && data.found) {
+            if (data.success) resolve(data);
+            else reject(new Error(data.message || '임명장 생성 실패'));
+            return;
+          }
+          if (Date.now() - started > timeoutMs) return reject(new Error('임명장 생성 확인 시간이 초과되었습니다. designation_log를 확인해주세요.'));
+          setTimeout(poll, intervalMs);
+        })
+        .catch(function () {
+          if (Date.now() - started > timeoutMs) return reject(new Error('임명장 생성 상태 확인에 실패했습니다.'));
+          setTimeout(poll, intervalMs);
+        });
+    }
+    poll();
+  });
+}
+
+function displayAppointmentResults(results) {
+  const formEl = document.getElementById('appointmentForm');
+  const success = document.getElementById('appointmentSuccessArea');
+  const list = document.getElementById('appointmentDownloadList');
+  if (formEl) formEl.hidden = true;
+  if (success) success.hidden = false;
+  if (list) {
+    list.innerHTML = '';
+    (results || []).forEach(function (r) {
+      const item = document.createElement('div');
+      item.className = 'download-item';
+      item.innerHTML = `<span>📍 ${escapeHtml(r.storeName || '')}</span><a class="btn-small-dl" href="${escapeHtml(r.viewUrl || '#')}" target="_blank" rel="noopener">PDF 열기</a>`;
+      list.appendChild(item);
+    });
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetAppointmentForm() {
+  const formEl = document.getElementById('appointmentForm');
+  const success = document.getElementById('appointmentSuccessArea');
+  const container = document.getElementById('appointmentStoreList');
+  if (formEl) { formEl.reset(); formEl.hidden = false; }
+  if (success) success.hidden = true;
+  if (container) container.innerHTML = '';
+  const full = document.getElementById('appointmentEmployeeIdFull');
+  if (full) full.value = '';
+  appointmentStoreSeq = 0;
+  addAppointmentStoreRow();
+  setAppointmentResult('', '');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// v19: 매장리스트 기준 조직도 로딩 + 임명 매장 선택창 동시 갱신
+function loadOrganizationTree() {
+  if (!validateAppsScriptUrl(false)) {
+    setOrgMessage('error', 'Apps Script URL을 먼저 script.js에 입력해야 매장정보를 불러올 수 있습니다.');
+    showLoading(false);
+    return;
+  }
+  setOrgMessage('pending', '매장정보를 불러오는 중입니다...');
+  showLoading(true, '직영점·유통점·유통CAO 매장정보를 불러오는 중입니다. 잠시만 기다려주세요.', '매장정보를 불러오는 중입니다');
+  jsonpRequest({ mode: 'org' }, 30000)
+    .then(function (data) {
+      if (!data || !data.success) throw new Error(data && data.message ? data.message : '매장정보 불러오기 실패');
+      orgTree = data.tree || {};
+      populateHeadquarters();
+      refreshAppointmentRows();
+      setOrgMessage('success', `매장정보를 불러왔습니다. 총 ${data.count || 0}개 매장 기준입니다.`);
+      showLoading(false);
+    })
+    .catch(function (error) {
+      console.error(error);
+      setOrgMessage('error', '매장정보를 불러오지 못했습니다. 직영점/유통점/유통CAO 시트와 Apps Script 배포 권한을 확인해주세요.');
+      resetSelect(headquarterSelect, '매장정보 불러오기 실패', true);
+      resetSelect(departmentSelect, '매장구분을 먼저 선택해주세요', true);
+      resetSelect(teamSelect, '부서명을 먼저 선택해주세요', true);
+      resetSelect(storeSelect, '팀명을 먼저 선택해주세요', true);
+      showLoading(false);
+    });
+}
+
+function populateHeadquarters() {
+  const headquarters = Object.keys(orgTree).sort(koreanSort);
+  fillSelect(headquarterSelect, headquarters, '매장구분을 선택해주세요', headquarters.length === 0);
+  resetSelect(departmentSelect, '매장구분을 먼저 선택해주세요', true);
+  resetSelect(teamSelect, '부서명을 먼저 선택해주세요', true);
+  resetSelect(storeSelect, '팀명을 먼저 선택해주세요', true);
 }

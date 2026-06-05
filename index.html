@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>관리감독자 반기 업무수행 평가 시스템</title>
-  <link rel="stylesheet" href="style.css?v=20260605_v18" />
+  <title>관리감독자 통합 관리 시스템</title>
+  <link rel="stylesheet" href="style.css?v=20260605_v19" />
 </head>
 <body>
   <main class="page v18-page" id="pageRoot">
@@ -16,9 +16,9 @@
       <div class="hero-copy">
         <span class="hello-icon" aria-hidden="true">🙂</span>
         <div>
-          <p class="badge">관리감독자 반기 업무수행 평가</p>
+          <p class="badge">관리감독자 통합 관리</p>
           <h1>안녕하세요!<br />안전한 매장을 함께 만들어가요.</h1>
-          <p class="subtitle">기본정보 입력 → 평가 작성 → 서명 → 제출 완료 순서로 진행됩니다.</p>
+          <p class="subtitle">관리감독자 임명/변경과 반기 업무수행 평가를 한 화면에서 진행합니다.</p>
         </div>
       </div>
       <div class="progress-preview" aria-label="작성 단계 안내">
@@ -32,6 +32,95 @@
       </div>
     </section>
 
+    <section class="card module-select-card" id="moduleSelectCard">
+      <div class="section-title-row module-title-row">
+        <span class="round-number">✓</span>
+        <div>
+          <h2>업무 선택</h2>
+          <p class="section-guide">진행할 업무를 선택해주세요. 기존 기능은 유지하고 화면만 통합했습니다.</p>
+        </div>
+      </div>
+      <div class="module-buttons" role="tablist" aria-label="업무 선택">
+        <button type="button" class="module-btn active" id="showEvaluationModuleBtn">
+          <strong>반기 업무수행 평가</strong>
+          <span>매장별 안전보건 업무수행 결과 제출</span>
+        </button>
+        <button type="button" class="module-btn" id="showAppointmentModuleBtn">
+          <strong>관리감독자 임명/변경</strong>
+          <span>매장별 관리감독자 선임 및 임명장 다운로드</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="appointmentModule" class="appointment-module" hidden>
+      <section class="notice card compact-card guide-card appointment-guide">
+        <div class="guide-card-head">
+          <div>
+            <h2>관리감독자 임명/변경</h2>
+            <p class="section-guide">사번과 성명을 입력한 뒤 담당 매장을 추가하세요. 완료 후 임명장 PDF를 바로 다운로드할 수 있습니다.</p>
+          </div>
+          <span class="guide-badge">PDF 즉시 다운로드</span>
+        </div>
+        <div class="sample-box appointment-notice-box">
+          <div>
+            <strong>저장 방식 안내</strong>
+            <p>임명장 PDF는 Google Drive에 저장하지 않고 구글시트 내부 링크로 보관됩니다. 작성자는 기존처럼 바로 다운로드할 수 있습니다.</p>
+          </div>
+        </div>
+      </section>
+
+      <form id="appointmentForm" class="card entry-form appointment-form" novalidate>
+        <section class="form-section basic-info-section">
+          <div class="section-title-row">
+            <span class="round-number">1</span>
+            <div>
+              <h2>임명 대상자 정보</h2>
+              <p class="section-guide">관리감독자로 임명할 점장님의 성명과 사번을 입력해주세요.</p>
+            </div>
+          </div>
+          <div class="grid soft-grid">
+            <label>
+              관리감독자 성명 <span class="required-mark">*</span>
+              <input type="text" name="appointmentName" id="appointmentName" placeholder="성명 입력" autocomplete="name" required />
+            </label>
+            <label>
+              사번 <span class="required-mark">*</span>
+              <div class="employee-id-wrap">
+                <span class="employee-prefix">AD</span>
+                <input type="tel" name="appointmentEmployeeIdNumber" id="appointmentEmployeeIdInput" placeholder="숫자만 입력" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required />
+                <input type="hidden" name="appointmentEmployeeId" id="appointmentEmployeeIdFull" />
+              </div>
+              <p class="field-guide">AD는 자동으로 붙습니다. 예: 2158812 입력 → AD2158812 저장</p>
+            </label>
+          </div>
+        </section>
+
+        <section class="form-section appointment-store-section">
+          <div class="section-title-row">
+            <span class="round-number">2</span>
+            <div>
+              <h2>임명 매장 선택</h2>
+              <p class="section-guide">겸직 매장이 있으면 매장을 계속 추가하세요. 각 매장별 임명장이 생성됩니다.</p>
+            </div>
+          </div>
+          <div id="appointmentStoreList" class="appointment-store-list"></div>
+          <button type="button" class="start-btn secondary-start" id="addAppointmentStoreBtn">+ 매장 추가하기</button>
+        </section>
+
+        <button type="submit" id="appointmentSubmitBtn" class="submit-btn">임명장 생성하기</button>
+        <div id="appointmentResultMessage" class="result" aria-live="polite"></div>
+      </form>
+
+      <section id="appointmentSuccessArea" class="card appointment-success-card" hidden>
+        <div class="success-icon">✨</div>
+        <h2>임명장 생성이 완료되었습니다</h2>
+        <p class="section-guide">아래 버튼으로 임명장 PDF를 다운로드하세요.</p>
+        <div id="appointmentDownloadList" class="download-list"></div>
+        <button type="button" class="submit-btn muted-submit" id="newAppointmentBtn">새로 임명하기</button>
+      </section>
+    </section>
+
+    <section id="evaluationModule" class="evaluation-module">
     <section class="notice card compact-card guide-card" id="noticeCard">
       <div class="guide-card-head">
         <div>
@@ -60,7 +149,7 @@
           <span class="round-number">1</span>
           <div>
             <h2>기본정보 입력</h2>
-            <p class="section-guide">영업본부 → 부서명 → 팀명 → 매장명 순서로 선택하고, 성명과 사번 숫자만 입력해주세요.</p>
+            <p class="section-guide">매장구분 → 부서명 → 팀명 → 매장명 순서로 선택하고, 성명과 사번 숫자만 입력해주세요.</p>
           </div>
         </div>
 
@@ -68,16 +157,16 @@
 
         <div class="grid soft-grid">
           <label>
-            영업본부 <span class="required-mark">*</span>
+            매장구분 <span class="required-mark">*</span>
             <select name="headquarter" id="headquarterSelect" required disabled>
-              <option value="">조직도 불러오는 중...</option>
+              <option value="">매장정보 불러오는 중...</option>
             </select>
           </label>
 
           <label>
             부서명 <span class="required-mark">*</span>
             <select name="department" id="departmentSelect" required disabled>
-              <option value="">영업본부를 먼저 선택해주세요</option>
+              <option value="">매장구분을 먼저 선택해주세요</option>
             </select>
           </label>
 
@@ -169,6 +258,7 @@
         <div id="resultMessage" class="result" aria-live="polite"></div>
       </div>
     </form>
+    </section>
   </main>
 
   <div id="loadingOverlay" class="loading-overlay" hidden>
@@ -191,6 +281,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=20260605_v18"></script>
+  <script src="script.js?v=20260605_v19"></script>
 </body>
 </html>
