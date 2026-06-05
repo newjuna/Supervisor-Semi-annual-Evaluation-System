@@ -1,5 +1,5 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v14
+ * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v18
  *
  * 핵심 구조
  * - 화면: GitHub Pages
@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQ3XXPDHp-seImG0ifi2f0zE68wpoRqs-TviwYPlBPuw2dt8jf5nHYnfub1V3wtTPg/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const MAX_FILES_PER_FIELD = 5;
 
 const EVALUATION_ITEMS = [
@@ -242,7 +242,7 @@ form.addEventListener('submit', async function (event) {
             <div><b>사번</b><span>${escapeHtml(payload.basic.employeeId)}</span></div>
           </div>
           <p class="modal-small-text">제출해주신 내용은 안전보건팀 DB와 대시보드에 자동 반영됩니다.</p>`,
-        confirmText: '확인'
+        confirmText: '다른 매장 이어서 작성'
       });
       resetFormAfterSuccess();
     } else {

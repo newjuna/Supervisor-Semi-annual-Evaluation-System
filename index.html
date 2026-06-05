@@ -4,34 +4,50 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>관리감독자 반기 업무수행 평가 시스템</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=20260605_v18" />
 </head>
 <body>
-  <main class="page" id="pageRoot">
-    <section class="hero">
-      <div>
-        <p class="badge">ASUNG DAISO SAFETY & HEALTH</p>
-        <h1>관리감독자 반기 업무수행 평가</h1>
-        <p class="subtitle">
-          중대재해처벌법 반기 이행평가를 위해 해당 반기 안전보건 업무수행 결과를 자가평가하고,
-          관련 증빙자료를 사진으로 첨부하여 제출해주세요.
-        </p>
+  <main class="page v18-page" id="pageRoot">
+    <section class="hero soft-hero">
+      <div class="brand-row">
+        <span class="daiso-mark">daiso</span>
+        <span class="system-chip">Safety Evaluation</span>
+      </div>
+      <div class="hero-copy">
+        <span class="hello-icon" aria-hidden="true">🙂</span>
+        <div>
+          <p class="badge">관리감독자 반기 업무수행 평가</p>
+          <h1>안녕하세요!<br />안전한 매장을 함께 만들어가요.</h1>
+          <p class="subtitle">기본정보 입력 → 평가 작성 → 서명 → 제출 완료 순서로 진행됩니다.</p>
+        </div>
+      </div>
+      <div class="progress-preview" aria-label="작성 단계 안내">
+        <div class="progress-step active"><span>1</span><b>기본정보</b></div>
+        <div class="progress-line"></div>
+        <div class="progress-step"><span>2</span><b>평가작성</b></div>
+        <div class="progress-line"></div>
+        <div class="progress-step"><span>3</span><b>서명</b></div>
+        <div class="progress-line"></div>
+        <div class="progress-step"><span>4</span><b>제출</b></div>
       </div>
     </section>
 
-    <section class="notice card compact-card" id="noticeCard">
-      <h2>작성 전 확인</h2>
-      <p class="section-guide">
-        먼저 작성 예시를 확인한 후, 본인의 조직정보와 성명·사번을 입력하고 평가를 제출해주세요.
-      </p>
+    <section class="notice card compact-card guide-card" id="noticeCard">
+      <div class="guide-card-head">
+        <div>
+          <h2>작성 전 확인</h2>
+          <p class="section-guide">처음 작성하는 경우, 작성 가이드와 항목별 예시를 먼저 확인해주세요.</p>
+        </div>
+        <span class="guide-badge">모바일 최적화</span>
+      </div>
       <div class="sample-box">
         <div>
           <strong>작성 가이드 이미지</strong>
-          <p>모바일 작성 순서와 항목별 예시 확인 방법을 볼 수 있습니다.</p>
+          <p>모바일 작성 순서, 첨부 방식, 제출 완료 흐름을 한눈에 확인할 수 있습니다.</p>
         </div>
         <div class="sample-actions">
-          <a class="ghost-btn" href="./assets/examples/guide_overview.png" target="_blank" rel="noopener">작성 가이드 보기</a>
-          <a class="ghost-btn" href="./assets/examples/guide_overview.png" download>이미지 다운로드</a>
+          <a class="ghost-btn" href="./assets/examples/guide_overview.png" target="_blank" rel="noopener">📒 작성 가이드 보기</a>
+          <a class="ghost-btn" href="./assets/examples/guide_overview.png" download>⬇ 이미지 다운로드</a>
         </div>
       </div>
     </section>
@@ -40,14 +56,17 @@
       <input type="hidden" name="evaluationPeriod" value="2026년 상반기" />
 
       <section class="form-section basic-info-section" id="basicInfoSection">
-        <h2>1. 기본정보</h2>
-        <p class="section-guide">
-          영업본부 → 부서명 → 팀명 → 매장명 순서로 선택해주세요. 성명과 사번만 직접 입력합니다.
-        </p>
+        <div class="section-title-row">
+          <span class="round-number">1</span>
+          <div>
+            <h2>기본정보 입력</h2>
+            <p class="section-guide">영업본부 → 부서명 → 팀명 → 매장명 순서로 선택하고, 성명과 사번 숫자만 입력해주세요.</p>
+          </div>
+        </div>
 
         <div id="orgLoadMessage" class="inline-message pending">조직도 정보를 불러오는 중입니다...</div>
 
-        <div class="grid">
+        <div class="grid soft-grid">
           <label>
             영업본부 <span class="required-mark">*</span>
             <select name="headquarter" id="headquarterSelect" required disabled>
@@ -97,13 +116,13 @@
               />
               <input type="hidden" name="employeeId" id="employeeIdFull" />
             </div>
-            <p class="field-guide">AD는 자동으로 붙습니다. 숫자만 입력해주세요.</p>
+            <p class="field-guide">AD는 자동으로 붙습니다. 예: 2158812 입력 → AD2158812 저장</p>
           </label>
         </div>
 
         <div class="entry-actions">
-          <button type="button" id="startEvaluationBtn" class="start-btn">평가 시작하기</button>
-          <p class="entry-help">조직정보·성명·사번을 입력하면 평가 화면으로 이동합니다.</p>
+          <button type="button" id="startEvaluationBtn" class="start-btn">평가 시작하기 →</button>
+          <p class="entry-help">기본정보 입력 후 평가 화면으로 이동합니다.</p>
         </div>
         <div id="entryMessage" class="result" aria-live="polite"></div>
       </section>
@@ -117,32 +136,37 @@
           <button type="button" id="editBasicInfoBtn" class="sub-btn small-btn">기본정보 수정</button>
         </section>
 
-      <section class="form-section">
-        <h2>2. 관리감독자 업무수행 자가평가</h2>
-        <p class="section-guide">
-          모든 항목은 기본값이 <strong>상</strong>입니다. 기준을 확인한 뒤 상/중/하만 선택하고, 필요한 사진은 항목별로 첨부해주세요.
-        </p>
-        <div id="evaluationItems" class="check-list"></div>
-      </section>
+        <section class="form-section evaluation-form-section">
+          <div class="section-title-row">
+            <span class="round-number">2</span>
+            <div>
+              <h2>평가 작성</h2>
+              <p class="section-guide">기준을 확인한 뒤 항목별로 상/중/하만 선택해주세요. 필요한 사진은 각 항목에서 바로 첨부합니다.</p>
+            </div>
+          </div>
+          <div id="evaluationItems" class="check-list"></div>
+        </section>
 
-      <section class="form-section signature-section">
-        <h2>3. 제출자 서명</h2>
-        <p class="section-guide">
-          제출 전 아래 서명란에 직접 서명해주세요. 서명 이미지는 DB에 사진 링크로 저장됩니다.
-        </p>
+        <section class="form-section signature-section">
+          <div class="section-title-row">
+            <span class="round-number">3</span>
+            <div>
+              <h2>서명 후 제출</h2>
+              <p class="section-guide">제출 전 아래 서명란에 직접 서명해주세요. 서명 이미지는 DB에 사진 링크로 저장됩니다.</p>
+            </div>
+          </div>
 
-        <div class="signature-pad-wrap">
-          <canvas id="signaturePad" class="signature-pad" aria-label="서명란"></canvas>
-          <div class="signature-placeholder">이곳에 손가락으로 서명해주세요</div>
-        </div>
-        <div class="signature-actions">
-          <button type="button" class="sub-btn" id="clearSignatureBtn">서명 지우기</button>
-        </div>
-      </section>
+          <div class="signature-pad-wrap">
+            <canvas id="signaturePad" class="signature-pad" aria-label="서명란"></canvas>
+            <div class="signature-placeholder">이곳에 손가락으로 서명해주세요</div>
+          </div>
+          <div class="signature-actions">
+            <button type="button" class="sub-btn" id="clearSignatureBtn">서명 지우기</button>
+          </div>
+        </section>
 
-      <button type="submit" id="submitBtn" class="submit-btn">반기평가 제출하기</button>
-
-      <div id="resultMessage" class="result" aria-live="polite"></div>
+        <button type="submit" id="submitBtn" class="submit-btn">반기평가 제출하기</button>
+        <div id="resultMessage" class="result" aria-live="polite"></div>
       </div>
     </form>
   </main>
@@ -167,6 +191,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=20260605_v17"></script>
+  <script src="script.js?v=20260605_v18"></script>
 </body>
 </html>
