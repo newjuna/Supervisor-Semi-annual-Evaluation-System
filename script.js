@@ -1,17 +1,27 @@
 /**
- * 관리감독자 반기 업무수행 평가 시스템 - GitHub Pages용 script.js v18
+ * 관리감독자 통합 관리 시스템 - GitHub Pages용 script.js v27
  *
  * 핵심 구조
  * - 화면: GitHub Pages
  * - 조직도: Google Sheets '조직도' 시트 A:D를 Apps Script에서 불러옴
  * - 저장: Apps Script → Google Sheets DB
  * - 사진/서명: Google Drive 미사용, Google Sheets 내부 _FILE_INDEX / _FILE_CHUNKS 시트에 압축 저장
- * - 항목별 첨부사진은 추가 선택해도 기존 사진이 유지되며 최대 5장까지 등록 가능
+ * - 항목별 첨부사진은 추가 선택해도 기존 사진이 유지되며, 제출 전 자동 압축 저장
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzFM3NEieOIYsvuQ14S1vFFfqai6WG6iFrEstjtLnRlbRzqe6xmV_nnXjmhde-f6sx8/exec';
-const MAX_FILES_PER_FIELD = 5;
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
+const IMAGE_COMPRESSION_CONFIG = {
+  targetDataUrlLength: 260000,
+  maxDataUrlLength: 360000,
+  steps: [
+    { maxSize: 1280, quality: 0.72 },
+    { maxSize: 1100, quality: 0.64 },
+    { maxSize: 900, quality: 0.56 },
+    { maxSize: 750, quality: 0.48 },
+    { maxSize: 640, quality: 0.42 }
+  ]
+};
 
 const EVALUATION_ITEMS = [
   {
@@ -111,7 +121,7 @@ const EVIDENCE_FILE_FIELDS = EVALUATION_ITEMS.map(function (item) {
   return {
     name: 'evidence_' + item.id,
     label: '판단 증빙사진 - ' + item.title,
-    hint: '필요한 경우 사진을 여러 장 첨부할 수 있습니다. 최대 5장까지 가능합니다.',
+    hint: '필요한 경우 사진을 여러 장 첨부할 수 있습니다. 제출 시 자동으로 압축 저장됩니다.',
     required: false,
     evidenceOnly: true,
     itemId: item.id
@@ -341,7 +351,7 @@ function createFilePickerHtml(field) {
         <label class="photo-btn attach" for="${inputId}">📎 첨부</label>
         ${secondActionHtml}
       </div>
-      <p class="photo-add-guide">추가로 첨부해도 기존 사진은 유지됩니다. 삭제 버튼을 누르면 해당 항목 사진이 모두 삭제됩니다.</p>
+      <p class="photo-add-guide">추가로 첨부해도 기존 사진은 유지됩니다. 제출 시 사진은 자동 압축되어 저장됩니다.</p>
       <div class="preview-row" id="${field.name}_preview">
         <span data-preview-name="${escapeHtml(field.name)}"></span>
         <button type="button" class="clear-file-btn" data-clear-file="${escapeHtml(field.name)}">삭제</button>
@@ -588,12 +598,6 @@ function bindFileInputs() {
 
     const existingFiles = Array.isArray(selectedFiles[field]) ? selectedFiles[field] : [];
     const mergedFiles = existingFiles.concat(files);
-
-    if (mergedFiles.length > MAX_FILES_PER_FIELD) {
-      alert('한 항목당 최대 ' + MAX_FILES_PER_FIELD + '장까지 첨부할 수 있습니다. 현재 ' + existingFiles.length + '장이 첨부되어 있습니다.');
-      input.value = '';
-      return;
-    }
 
     selectedFiles[field] = mergedFiles;
     updateFilePreview(field, mergedFiles);
@@ -976,6 +980,8 @@ async function collectAttachments(submissionId) {
         fileName: `${submissionId}_${field.name}${suffix}_${sanitizeFileName(file.name)}`,
         mimeType: processed.mimeType,
         size: processed.size,
+        originalSize: processed.originalSize || file.size || 0,
+        compressed: !!processed.compressed,
         dataUrl: processed.dataUrl
       });
     }
@@ -989,20 +995,33 @@ async function processImageFile(file) {
     throw new Error(`${file.name} 파일은 이미지 파일만 첨부할 수 있습니다.`);
   }
 
-  let dataUrl = await resizeImageToDataUrl(file, 900, 0.58);
+  let bestDataUrl = null;
+  const steps = IMAGE_COMPRESSION_CONFIG.steps || [];
 
-  if (dataUrl.length > 240000) {
-    dataUrl = await resizeImageToDataUrl(file, 750, 0.48);
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const dataUrl = await resizeImageToDataUrl(file, step.maxSize, step.quality);
+    bestDataUrl = dataUrl;
+
+    if (dataUrl.length <= IMAGE_COMPRESSION_CONFIG.targetDataUrlLength) {
+      break;
+    }
   }
 
-  if (dataUrl.length > 340000) {
+  if (!bestDataUrl) {
+    throw new Error(`${file.name} 사진을 압축할 수 없습니다. JPG 또는 PNG로 다시 촬영해주세요.`);
+  }
+
+  if (bestDataUrl.length > IMAGE_COMPRESSION_CONFIG.maxDataUrlLength) {
     throw new Error(`${file.name} 사진 용량이 너무 큽니다. 문서 부분만 나오게 다시 촬영하거나 앨범에서 더 작은 사진을 선택해주세요.`);
   }
 
   return {
-    dataUrl: dataUrl,
+    dataUrl: bestDataUrl,
     mimeType: 'image/jpeg',
-    size: dataUrl.length
+    size: bestDataUrl.length,
+    originalSize: file.size || 0,
+    compressed: true
   };
 }
 
