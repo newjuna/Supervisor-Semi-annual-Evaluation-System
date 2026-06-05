@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzm1GSmy1aY47uLXMtFpUu8hKiHZXwQ25FLeAiUKdAkNdamqGmHZZAyq_EnS08BSxWk/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const MAX_FILES_PER_FIELD = 5;
 
 const EVALUATION_ITEMS = [
@@ -372,14 +372,51 @@ function applyEvaluationItemState(itemId) {
 
 function bindEntryPage() {
   if (startEvaluationBtn) {
-    startEvaluationBtn.addEventListener('click', function () {
+    startEvaluationBtn.addEventListener('click', async function () {
       clearResult();
       if (!validateAppsScriptUrl()) return;
       if (!validateOrganizationLoaded()) return;
       if (!validateBasicRequired()) return;
       updateEmployeeIdFull();
-      updateSelectedInfoSummary();
-      showEvaluationPage();
+
+      const basic = getBasicInfoFromForm();
+      startEvaluationBtn.disabled = true;
+      showLoading(true, '관리감독자 임명 정보를 확인 중입니다.');
+
+      try {
+        const appointment = await checkAppointmentBeforeEvaluation(basic);
+        showLoading(false);
+
+        if (!appointment || !appointment.allowed) {
+          const ap = appointment && appointment.appointment ? appointment.appointment : {};
+          await showSubmitModal({
+            type: 'error',
+            title: '임명 정보 확인 필요',
+            html: `${escapeHtml((appointment && appointment.message) || '해당 매장의 관리감독자 임명 정보가 확인되지 않습니다.')}<br><br>
+              ${ap && ap.supervisorName ? `<div class="modal-info-box">
+                <div><b>현재 임명자</b><span>${escapeHtml(ap.supervisorName || '')}</span></div>
+                <div><b>사번</b><span>${escapeHtml(ap.employeeId || '')}</span></div>
+                <div><b>상태</b><span>${escapeHtml(ap.status || '')}</span></div>
+              </div>` : ''}
+              <p class="modal-small-text">반기평가는 관리감독자 임명 등록 후 진행할 수 있습니다.</p>`,
+            confirmText: '확인'
+          });
+          return;
+        }
+
+        updateSelectedInfoSummary();
+        showEvaluationPage();
+      } catch (error) {
+        showLoading(false);
+        await showSubmitModal({
+          type: 'error',
+          title: '임명 정보 확인 실패',
+          html: `${escapeHtml(error.message)}<p class="modal-small-text">계속 오류가 발생하면 안전보건팀에 문의해주세요.</p>`,
+          confirmText: '확인'
+        });
+      } finally {
+        startEvaluationBtn.disabled = false;
+      }
     });
   }
 
@@ -740,7 +777,7 @@ async function confirmSubmissionDetails(basic) {
   return showSubmitModal({
     type: 'confirm',
     title: '제출 정보 확인',
-    html: `아래 정보로 제출됩니다.<br>사번·성명·매장명이 동일한 제출 건이 있으면 중복 제출이 차단됩니다.<br><br>
+    html: `아래 정보로 제출됩니다.<br>임명된 관리감독자 정보 확인 후 제출됩니다. 동일 매장은 1회만 제출할 수 있습니다.<br><br>
       <div class="modal-info-box">
         <div><b>영업본부</b><span>${escapeHtml(basic.headquarter)}</span></div>
         <div><b>부서명</b><span>${escapeHtml(basic.department)}</span></div>
@@ -765,6 +802,22 @@ async function checkDuplicateSubmission(basic) {
 
   if (!data || data.success === false) {
     throw new Error(data && data.message ? data.message : '중복 제출 확인에 실패했습니다.');
+  }
+
+  return data;
+}
+
+
+async function checkAppointmentBeforeEvaluation(basic) {
+  const data = await jsonpRequest({
+    mode: 'appointmentLookup',
+    employeeId: basic.employeeId,
+    supervisorName: basic.supervisorName,
+    storeName: basic.storeName
+  }, 20000);
+
+  if (!data || data.success === false) {
+    throw new Error(data && data.message ? data.message : '관리감독자 임명 정보 확인에 실패했습니다.');
   }
 
   return data;
