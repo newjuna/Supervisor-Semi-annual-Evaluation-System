@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx0RCnwL2m0yQpGMoFMTCfqcVr7xN1GFxphwhFnoxFLxjw4VoFmf7N9X7rs1LA8q1eG/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const MAX_FILES_PER_FIELD = 5;
 
 const EVALUATION_ITEMS = [
@@ -1716,4 +1716,362 @@ function populateHeadquarters() {
   resetSelect(departmentSelect, '매장구분을 먼저 선택해주세요', true);
   resetSelect(teamSelect, '부서명을 먼저 선택해주세요', true);
   resetSelect(storeSelect, '팀명을 먼저 선택해주세요', true);
+}
+
+/* ==============================
+   v25 사용자 흐름 개선
+   - 첫 화면 메뉴형
+   - 반기평가 진입 전 임명 안내 팝업
+   - 매장 선택 후 현재 임명자 선택 → 평가 진행
+   - 사용자 화면 본부 기준: 수도권영업본부/지방영업본부
+   ============================== */
+var selectedAppointmentForEvaluation = null;
+
+function initV19ModuleSwitch() {
+  const evaluationModule = document.getElementById('evaluationModule');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
+  const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
+  if (!evaluationModule || !appointmentModule || !showEvaluationBtn || !showAppointmentBtn) return;
+
+  evaluationModule.hidden = true;
+  appointmentModule.hidden = true;
+  showEvaluationBtn.classList.remove('active');
+  showAppointmentBtn.classList.remove('active');
+
+  showEvaluationBtn.addEventListener('click', async function () {
+    const proceed = await showSubmitModal({
+      type: 'confirm',
+      title: '관리감독자 임명 확인 안내',
+      html: '반기 업무수행평가는 <strong>관리감독자 임명이 완료된 매장</strong>만 진행할 수 있습니다.<br><br>' +
+        '<div class="modal-info-box">' +
+        '<div><b>1단계</b><span>관리감독자 임명/변경 등록</span></div>' +
+        '<div><b>2단계</b><span>임명장 PDF 확인 및 다운로드</span></div>' +
+        '<div><b>3단계</b><span>임명된 관리감독자 선택 후 반기평가 진행</span></div>' +
+        '</div>' +
+        '<p class="modal-small-text">아직 임명 등록이 안 되어 있으면 먼저 임명/변경을 진행해주세요.</p>',
+      confirmText: '임명 완료, 평가 진행하기',
+      cancelText: '임명/변경 먼저 하기'
+    });
+
+    if (!proceed) {
+      switchToAppointmentModule();
+      return;
+    }
+    switchToEvaluationModule();
+  });
+
+  showAppointmentBtn.addEventListener('click', function () {
+    switchToAppointmentModule();
+  });
+}
+
+function switchToAppointmentModule() {
+  const evaluationModule = document.getElementById('evaluationModule');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
+  const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
+  if (evaluationModule) evaluationModule.hidden = true;
+  if (appointmentModule) appointmentModule.hidden = false;
+  if (showAppointmentBtn) showAppointmentBtn.classList.add('active');
+  if (showEvaluationBtn) showEvaluationBtn.classList.remove('active');
+  ensureAppointmentStoreRow();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function switchToEvaluationModule() {
+  const evaluationModule = document.getElementById('evaluationModule');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
+  const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
+  if (evaluationModule) evaluationModule.hidden = false;
+  if (appointmentModule) appointmentModule.hidden = true;
+  if (showEvaluationBtn) showEvaluationBtn.classList.add('active');
+  if (showAppointmentBtn) showAppointmentBtn.classList.remove('active');
+  showEntryPage(false);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function initAppointmentModule() {
+  const formEl = document.getElementById('appointmentForm');
+  const addBtn = document.getElementById('addAppointmentStoreBtn');
+  const empInput = document.getElementById('appointmentEmployeeIdInput');
+  const newBtn = document.getElementById('newAppointmentBtn');
+  const goEvalBtn = document.getElementById('goEvaluationAfterAppointmentBtn');
+
+  if (addBtn) addBtn.addEventListener('click', addAppointmentStoreRow);
+  if (newBtn) newBtn.addEventListener('click', resetAppointmentForm);
+  if (goEvalBtn) goEvalBtn.addEventListener('click', function () { switchToEvaluationModule(); });
+  if (empInput) {
+    empInput.addEventListener('input', function () {
+      empInput.value = String(empInput.value || '').replace(/\D/g, '');
+      const full = document.getElementById('appointmentEmployeeIdFull');
+      if (full) full.value = empInput.value ? 'AD' + empInput.value : '';
+    });
+  }
+  if (formEl) formEl.addEventListener('submit', handleAppointmentSubmit);
+}
+
+function bindCascadingOrgSelects() {
+  if (headquarterSelect) {
+    headquarterSelect.addEventListener('change', function () {
+      clearSelectedAppointmentForEvaluation();
+      populateDepartments(headquarterSelect.value);
+    });
+  }
+  if (departmentSelect) {
+    departmentSelect.addEventListener('change', function () {
+      clearSelectedAppointmentForEvaluation();
+      populateTeams(headquarterSelect.value, departmentSelect.value);
+    });
+  }
+  if (teamSelect) {
+    teamSelect.addEventListener('change', function () {
+      clearSelectedAppointmentForEvaluation();
+      populateStores(headquarterSelect.value, departmentSelect.value, teamSelect.value);
+    });
+  }
+  if (storeSelect) {
+    storeSelect.addEventListener('change', function () {
+      clearSelectedAppointmentForEvaluation();
+      loadAppointmentsForSelectedStore();
+    });
+  }
+}
+
+function loadOrganizationTree() {
+  if (!validateAppsScriptUrl(false)) {
+    setOrgMessage('error', 'Apps Script URL을 먼저 script.js에 입력해야 매장정보를 불러올 수 있습니다.');
+    showLoading(false);
+    return;
+  }
+  setOrgMessage('pending', '매장정보를 불러오는 중입니다...');
+  showLoading(true, '수도권영업본부·지방영업본부 기준 매장정보를 불러오는 중입니다. 잠시만 기다려주세요.', '매장정보를 불러오는 중입니다');
+  jsonpRequest({ mode: 'org' }, 30000)
+    .then(function (data) {
+      if (!data || !data.success) throw new Error(data && data.message ? data.message : '매장정보 불러오기 실패');
+      orgTree = data.tree || {};
+      populateHeadquarters();
+      refreshAppointmentRows();
+      setOrgMessage('success', '매장정보를 불러왔습니다. 총 ' + (data.count || 0) + '개 매장 기준입니다.');
+      showLoading(false);
+    })
+    .catch(function (error) {
+      console.error(error);
+      setOrgMessage('error', '매장정보를 불러오지 못했습니다. 직영점/유통점/유통CAO 시트와 Apps Script 배포 권한을 확인해주세요.');
+      resetSelect(headquarterSelect, '매장정보 불러오기 실패', true);
+      resetSelect(departmentSelect, '영업본부를 먼저 선택해주세요', true);
+      resetSelect(teamSelect, '부서명을 먼저 선택해주세요', true);
+      resetSelect(storeSelect, '팀명을 먼저 선택해주세요', true);
+      showLoading(false);
+    });
+}
+
+function populateHeadquarters() {
+  const headquarters = Object.keys(orgTree || {}).sort(koreanSort);
+  fillSelect(headquarterSelect, headquarters, '영업본부를 선택해주세요', headquarters.length === 0);
+  resetSelect(departmentSelect, '영업본부를 먼저 선택해주세요', true);
+  resetSelect(teamSelect, '부서명을 먼저 선택해주세요', true);
+  resetSelect(storeSelect, '팀명을 먼저 선택해주세요', true);
+  clearSelectedAppointmentForEvaluation();
+}
+
+async function loadAppointmentsForSelectedStore() {
+  const card = document.getElementById('appointmentListCard');
+  const list = document.getElementById('appointmentList');
+  const status = document.getElementById('appointmentListStatus');
+  if (!card || !list || !status) return;
+
+  const storeName = storeSelect ? storeSelect.value : '';
+  list.innerHTML = '';
+  if (!storeName) {
+    card.hidden = true;
+    status.textContent = '매장을 선택하면 임명 정보를 확인합니다.';
+    return;
+  }
+
+  card.hidden = false;
+  status.textContent = '임명 정보를 확인 중입니다...';
+  list.innerHTML = '<div class="appointed-empty">현재 임명 정보를 불러오는 중입니다.</div>';
+
+  try {
+    const data = await jsonpRequest({ mode: 'appointmentList', storeName: storeName }, 20000);
+    if (!data || data.success === false) throw new Error(data && data.message ? data.message : '임명자 조회 실패');
+    renderAppointmentList(data.appointments || []);
+  } catch (err) {
+    status.textContent = '조회 실패';
+    list.innerHTML = '<div class="appointed-empty">임명 정보를 불러오지 못했습니다.<br>잠시 후 다시 시도하거나 안전보건팀에 문의해주세요.</div>';
+  }
+}
+
+function renderAppointmentList(appointments) {
+  const list = document.getElementById('appointmentList');
+  const status = document.getElementById('appointmentListStatus');
+  if (!list || !status) return;
+  list.innerHTML = '';
+
+  if (!appointments.length) {
+    status.textContent = '임명 정보 없음';
+    list.innerHTML = '<div class="appointed-empty">해당 매장의 관리감독자 임명 정보가 확인되지 않습니다.<br><b>관리감독자 임명/변경</b>을 먼저 진행해주세요.</div>';
+    clearSelectedAppointmentForEvaluation();
+    return;
+  }
+
+  status.textContent = appointments.length + '명 확인됨';
+  appointments.forEach(function (ap, index) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'appointed-person-btn';
+    btn.dataset.appointmentIndex = String(index);
+    btn.innerHTML = '<div><strong>' + escapeHtml(ap.supervisorName || '') + '</strong>' +
+      '<span>' + escapeHtml(ap.employeeId || '') + ' · 선임일 ' + escapeHtml(formatAppointmentDateText(ap.appliedAt || '')) + '</span></div>' +
+      '<em class="select-chip">선택</em>';
+    btn.addEventListener('click', function () {
+      selectAppointmentForEvaluation(ap, btn);
+    });
+    list.appendChild(btn);
+  });
+}
+
+function formatAppointmentDateText(value) {
+  if (!value) return '-';
+  return String(value).slice(0, 10);
+}
+
+function selectAppointmentForEvaluation(ap, button) {
+  selectedAppointmentForEvaluation = ap || null;
+  document.querySelectorAll('.appointed-person-btn').forEach(function (el) { el.classList.remove('selected'); });
+  if (button) button.classList.add('selected');
+  const nameInput = form && form.elements ? form.elements.supervisorName : null;
+  if (nameInput) nameInput.value = ap.supervisorName || '';
+  const empId = String(ap.employeeId || '').toUpperCase();
+  const digits = empId.replace(/^AD/i, '').replace(/\D/g, '');
+  if (employeeIdInput) employeeIdInput.value = digits;
+  if (employeeIdFull) employeeIdFull.value = digits ? 'AD' + digits : empId;
+  const status = document.getElementById('appointmentListStatus');
+  if (status) status.textContent = '임명자 선택 완료';
+}
+
+function clearSelectedAppointmentForEvaluation() {
+  selectedAppointmentForEvaluation = null;
+  document.querySelectorAll('.appointed-person-btn').forEach(function (el) { el.classList.remove('selected'); });
+  const nameInput = form && form.elements ? form.elements.supervisorName : null;
+  if (nameInput) nameInput.value = '';
+  if (employeeIdInput) employeeIdInput.value = '';
+  if (employeeIdFull) employeeIdFull.value = '';
+  const card = document.getElementById('appointmentListCard');
+  const list = document.getElementById('appointmentList');
+  const status = document.getElementById('appointmentListStatus');
+  if (card) card.hidden = true;
+  if (list) list.innerHTML = '';
+  if (status) status.textContent = '매장을 선택하면 임명 정보를 확인합니다.';
+}
+
+function validateBasicRequired() {
+  const requiredFields = [
+    [headquarterSelect, '영업본부를 선택해주세요.'],
+    [departmentSelect, '부서명을 선택해주세요.'],
+    [teamSelect, '팀명을 선택해주세요.'],
+    [storeSelect, '매장명을 선택해주세요.']
+  ];
+  for (const pair of requiredFields) {
+    const el = pair[0];
+    const message = pair[1];
+    if (!el || !String(el.value || '').trim()) {
+      setResult('error', message);
+      if (el && el.focus) el.focus();
+      return false;
+    }
+  }
+  if (!selectedAppointmentForEvaluation) {
+    setResult('error', '현재 임명된 관리감독자를 선택해주세요. 임명 정보가 없으면 임명/변경을 먼저 진행해야 합니다.');
+    const card = document.getElementById('appointmentListCard');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+  return true;
+}
+
+function bindEntryPage() {
+  if (startEvaluationBtn) {
+    startEvaluationBtn.addEventListener('click', async function () {
+      clearResult();
+      if (!validateAppsScriptUrl()) return;
+      if (!validateOrganizationLoaded()) return;
+      if (!validateBasicRequired()) return;
+      updateEmployeeIdFull();
+      const basic = getBasicInfoFromForm();
+      startEvaluationBtn.disabled = true;
+      showLoading(true, '현재 임명자 정보를 최종 확인 중입니다.', '임명 정보 확인');
+      try {
+        const appointment = await checkAppointmentBeforeEvaluation(basic);
+        showLoading(false);
+        if (!appointment || !appointment.allowed) {
+          await showSubmitModal({
+            type: 'error',
+            title: '임명 정보 확인 필요',
+            html: escapeHtml((appointment && appointment.message) || '해당 매장의 관리감독자 임명 정보가 확인되지 않습니다.') + '<br><br><p class="modal-small-text">임명/변경을 먼저 진행한 후 반기평가를 진행해주세요.</p>',
+            confirmText: '확인'
+          });
+          return;
+        }
+        updateSelectedInfoSummary();
+        showEvaluationPage();
+      } catch (error) {
+        showLoading(false);
+        await showSubmitModal({ type: 'error', title: '임명 정보 확인 실패', html: escapeHtml(error.message) + '<p class="modal-small-text">계속 오류가 발생하면 안전보건팀에 문의해주세요.</p>', confirmText: '확인' });
+      } finally {
+        startEvaluationBtn.disabled = false;
+      }
+    });
+  }
+  if (editBasicInfoBtn) {
+    editBasicInfoBtn.addEventListener('click', function () { showEntryPage(true); });
+  }
+}
+
+function displayAppointmentResults(results) {
+  const formEl = document.getElementById('appointmentForm');
+  const success = document.getElementById('appointmentSuccessArea');
+  const list = document.getElementById('appointmentDownloadList');
+  if (formEl) formEl.hidden = true;
+  if (success) success.hidden = false;
+  if (list) {
+    list.innerHTML = '';
+    (results || []).forEach(function (r) {
+      const item = document.createElement('div');
+      item.className = 'download-item';
+      item.innerHTML = '<span>📍 ' + escapeHtml(r.storeName || '') + '</span><a class="btn-small-dl" href="' + escapeHtml(r.viewUrl || '#') + '" target="_blank" rel="noopener">PDF 열기</a>';
+      list.appendChild(item);
+    });
+  }
+  showSubmitModal({
+    type: 'success',
+    title: '임명장 생성 완료',
+    html: '임명장 PDF가 생성되었습니다.<br>다운로드 후 바로 반기 업무수행평가를 진행할 수 있습니다.',
+    confirmText: '확인'
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function resetFormAfterSuccess() {
+  clearResult();
+  form.reset();
+  selectedFiles = {};
+  document.querySelectorAll('.preview-row').forEach(function (row) {
+    row.classList.remove('active');
+    const span = row.querySelector('span');
+    if (span) span.textContent = '';
+  });
+  EVALUATION_ITEMS.forEach(function (item) {
+    const good = form.querySelector('input[name="' + item.id + '_result"][value="상"]');
+    if (good) good.checked = true;
+    applyEvaluationItemState(item.id);
+  });
+  clearSignature();
+  clearSelectedAppointmentForEvaluation();
+  resetOrgSelectsAfterSubmit();
+  applyAccidentFileRule();
+  switchToEvaluationModule();
+  showEntryPage(true);
 }

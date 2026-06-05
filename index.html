@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>관리감독자 통합 관리 시스템</title>
-  <link rel="stylesheet" href="style.css?v=20260605_v19" />
+  <link rel="stylesheet" href="style.css?v=20260605_v25" />
 </head>
 <body>
   <main class="page v18-page" id="pageRoot">
@@ -18,7 +18,7 @@
         <div>
           <p class="badge">관리감독자 통합 관리</p>
           <h1>안녕하세요!<br />안전한 매장을 함께 만들어가요.</h1>
-          <p class="subtitle">관리감독자 임명/변경과 반기 업무수행 평가를 한 화면에서 진행합니다.</p>
+          <p class="subtitle">관리감독자 임명/변경을 먼저 완료한 뒤, 임명된 매장에 대해 반기 업무수행 평가를 진행합니다.</p>
         </div>
       </div>
       <div class="progress-preview" aria-label="작성 단계 안내">
@@ -37,11 +37,11 @@
         <span class="round-number">✓</span>
         <div>
           <h2>업무 선택</h2>
-          <p class="section-guide">진행할 업무를 선택해주세요. 기존 기능은 유지하고 화면만 통합했습니다.</p>
+          <p class="section-guide">진행할 업무를 선택해주세요. 진행할 업무를 선택해주세요. 반기평가는 임명 등록이 완료된 매장만 진행할 수 있습니다.</p>
         </div>
       </div>
       <div class="module-buttons" role="tablist" aria-label="업무 선택">
-        <button type="button" class="module-btn active" id="showEvaluationModuleBtn">
+        <button type="button" class="module-btn" id="showEvaluationModuleBtn">
           <strong>반기 업무수행 평가</strong>
           <span>매장별 안전보건 업무수행 결과 제출</span>
         </button>
@@ -114,13 +114,13 @@
       <section id="appointmentSuccessArea" class="card appointment-success-card" hidden>
         <div class="success-icon">✨</div>
         <h2>임명장 생성이 완료되었습니다</h2>
-        <p class="section-guide">아래 버튼으로 임명장 PDF를 다운로드하세요.</p>
+        <p class="section-guide">아래 버튼으로 임명장 PDF를 확인한 뒤, 바로 반기 업무수행 평가로 이동할 수 있습니다.</p>
         <div id="appointmentDownloadList" class="download-list"></div>
-        <button type="button" class="submit-btn muted-submit" id="newAppointmentBtn">새로 임명하기</button>
+        <div class="success-actions"><button type="button" class="submit-btn" id="goEvaluationAfterAppointmentBtn">반기 업무수행평가로 이동</button><button type="button" class="submit-btn muted-submit" id="newAppointmentBtn">다른 매장 계속 임명</button></div>
       </section>
     </section>
 
-    <section id="evaluationModule" class="evaluation-module">
+    <section id="evaluationModule" class="evaluation-module" hidden>
     <section class="notice card compact-card guide-card" id="noticeCard">
       <div class="guide-card-head">
         <div>
@@ -149,7 +149,7 @@
           <span class="round-number">1</span>
           <div>
             <h2>기본정보 입력</h2>
-            <p class="section-guide">매장구분 → 부서명 → 팀명 → 매장명 순서로 선택하고, 성명과 사번 숫자만 입력해주세요.</p>
+            <p class="section-guide">영업본부 → 부서명 → 팀명 → 매장명 순서로 선택하면 현재 임명된 관리감독자를 확인할 수 있습니다.</p>
           </div>
         </div>
 
@@ -157,16 +157,16 @@
 
         <div class="grid soft-grid">
           <label>
-            매장구분 <span class="required-mark">*</span>
+            영업본부 <span class="required-mark">*</span>
             <select name="headquarter" id="headquarterSelect" required disabled>
-              <option value="">매장정보 불러오는 중...</option>
+              <option value="">영업본부 불러오는 중...</option>
             </select>
           </label>
 
           <label>
             부서명 <span class="required-mark">*</span>
             <select name="department" id="departmentSelect" required disabled>
-              <option value="">매장구분을 먼저 선택해주세요</option>
+              <option value="">영업본부를 먼저 선택해주세요</option>
             </select>
           </label>
 
@@ -184,12 +184,12 @@
             </select>
           </label>
 
-          <label>
+          <label class="legacy-supervisor-input">
             관리감독자 성명 <span class="required-mark">*</span>
-            <input type="text" name="supervisorName" placeholder="성명 입력" autocomplete="name" required />
+            <input type="text" name="supervisorName" id="supervisorNameInput" placeholder="임명자 선택 시 자동 입력" autocomplete="name" readonly required />
           </label>
 
-          <label>
+          <label class="legacy-supervisor-input">
             사번 <span class="required-mark">*</span>
             <div class="employee-id-wrap">
               <span class="employee-prefix">AD</span>
@@ -197,21 +197,30 @@
                 type="tel"
                 name="employeeIdNumber"
                 id="employeeIdInput"
-                placeholder="숫자만 입력"
+                placeholder="임명자 선택 시 자동 입력"
                 inputmode="numeric"
                 pattern="[0-9]*"
                 autocomplete="off"
+                readonly
                 required
               />
               <input type="hidden" name="employeeId" id="employeeIdFull" />
             </div>
-            <p class="field-guide">AD는 자동으로 붙습니다. 예: 2158812 입력 → AD2158812 저장</p>
+            <p class="field-guide">매장 선택 후 현재 임명자를 선택하면 자동 입력됩니다.</p>
           </label>
         </div>
 
+        <div id="appointmentListCard" class="appointed-card" hidden>
+          <div class="appointed-head">
+            <strong>현재 임명된 관리감독자</strong>
+            <span id="appointmentListStatus">매장을 선택하면 임명 정보를 확인합니다.</span>
+          </div>
+          <div id="appointmentList" class="appointed-list"></div>
+        </div>
+
         <div class="entry-actions">
-          <button type="button" id="startEvaluationBtn" class="start-btn">평가 시작하기 →</button>
-          <p class="entry-help">기본정보 입력 후 평가 화면으로 이동합니다.</p>
+          <button type="button" id="startEvaluationBtn" class="start-btn">반기평가 이행하기 →</button>
+          <p class="entry-help">임명된 관리감독자를 선택한 후 평가를 진행합니다.</p>
         </div>
         <div id="entryMessage" class="result" aria-live="polite"></div>
       </section>
@@ -281,6 +290,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=20260605_v19"></script>
+  <script src="script.js?v=20260605_v25"></script>
 </body>
 </html>

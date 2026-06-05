@@ -2081,3 +2081,71 @@ textarea:focus {
   .module-buttons { grid-template-columns: 1fr 1fr; }
   .appointment-store-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ==============================
+   v25 흐름 개선
+   ============================== */
+.module-buttons { grid-template-columns: 1fr 1fr; }
+.legacy-supervisor-input { display: none !important; }
+.appointed-card {
+  margin-top: 1.2rem;
+  padding: 1.15rem;
+  border: 1px solid rgba(230, 0, 18, 0.18);
+  background: linear-gradient(180deg, #fff7f7 0%, #ffffff 100%);
+  border-radius: 18px;
+}
+.appointed-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .8rem;
+  margin-bottom: .8rem;
+}
+.appointed-head strong { color: #14213d; font-size: 1rem; }
+.appointed-head span { color: #6b7280; font-size: .82rem; text-align: right; line-height: 1.35; }
+.appointed-list { display: grid; gap: .65rem; }
+.appointed-person-btn {
+  width: 100%;
+  border: 2px solid #e5e7eb;
+  background: #fff;
+  border-radius: 16px;
+  padding: .95rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+  text-align: left;
+  cursor: pointer;
+}
+.appointed-person-btn strong { color: #111827; font-size: 1rem; }
+.appointed-person-btn span { display: block; margin-top: .22rem; color: #6b7280; font-size: .85rem; }
+.appointed-person-btn .select-chip {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  padding: .35rem .62rem;
+  font-size: .78rem;
+  font-weight: 800;
+}
+.appointed-person-btn.selected {
+  border-color: #e60012;
+  box-shadow: 0 8px 24px rgba(230,0,18,.12);
+}
+.appointed-person-btn.selected .select-chip { background: #e60012; color: #fff; }
+.appointed-empty {
+  padding: 1rem;
+  border: 1px dashed #fca5a5;
+  border-radius: 14px;
+  background: #fff;
+  color: #991b1b;
+  line-height: 1.45;
+  font-size: .92rem;
+}
+.success-actions { display: grid; gap: .75rem; margin-top: 1rem; }
+.submit-modal-actions .go-appointment-btn { background: #e60012; color: #fff; }
+@media (max-width: 520px) {
+  .module-buttons { grid-template-columns: 1fr; }
+  .appointed-head { display: block; }
+  .appointed-head span { display: block; text-align: left; margin-top: .25rem; }
+}
