@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>관리감독자 통합 관리 시스템</title>
-  <link rel="stylesheet" href="style.css?v=20260608_v28_3" />
+  <link rel="stylesheet" href="style.css?v=20260608_v29" />
 </head>
 <body>
   <main class="page v18-page" id="pageRoot">
@@ -222,6 +222,40 @@
             <span class="patrol-status-chip missing">미제출</span>
           </div>
           <p class="patrol-warning">※ 다음 주에 지난 주차를 작성하면 지연 제출로 감점됩니다.</p>
+
+          <div class="patrol-history-card">
+            <div class="patrol-history-head">
+              <div>
+                <strong>전주·과거 점검결과 확인</strong>
+                <span>제출 완료된 점검표는 TBM 공유자료와 증빙자료로 다시 확인할 수 있습니다.</span>
+              </div>
+            </div>
+            <div class="patrol-history-actions">
+              <button type="button" class="ghost-btn patrol-history-btn" id="patrolPrevWeekBtn">전주 점검결과 보기</button>
+              <button type="button" class="ghost-btn patrol-history-btn secondary" id="patrolPastSearchToggleBtn">과거 점검결과 조회</button>
+            </div>
+            <div id="patrolPastSearchBox" class="patrol-past-search" hidden>
+              <div class="grid soft-grid">
+                <label>
+                  연도
+                  <select id="patrolSearchYear"></select>
+                </label>
+                <label>
+                  월
+                  <select id="patrolSearchMonth"></select>
+                </label>
+                <label>
+                  주차
+                  <select id="patrolSearchWeek"></select>
+                </label>
+                <label>
+                  조회 기준
+                  <input type="text" value="선택한 매장·관리감독자 기준" readonly />
+                </label>
+              </div>
+              <button type="button" class="sub-btn patrol-query-btn" id="patrolPastSearchBtn">선택 주차 조회하기</button>
+            </div>
+          </div>
         </section>
 
         <section class="form-section patrol-items-section">
@@ -229,7 +263,7 @@
             <span class="round-number">3</span>
             <div>
               <h2>항목별 점검</h2>
-              <p class="section-guide">노란색 선정 항목 중 순회점검 성격에 맞는 26개 항목 기준입니다. 항목별 예시를 확인하고, 미흡 선택 시 해당 항목 안에서 사진과 내용을 작성해주세요.</p>
+              <p class="section-guide">노란색 선정 항목 중 순회점검 성격에 맞는 26개 항목 기준입니다. 집기·바닥·매대 등 구분별 탭을 눌러 필요한 항목만 펼쳐서 점검하세요.</p>
             </div>
           </div>
           <div id="patrolItemsContainer" class="patrol-check-grid"></div>
@@ -272,6 +306,17 @@
         <button type="submit" id="patrolSubmitBtn" class="submit-btn">주간순회점검표 제출하기</button>
         <div id="patrolResultMessage" class="result" aria-live="polite"></div>
       </form>
+
+      <section id="patrolResultViewer" class="card patrol-result-viewer" hidden>
+        <div class="section-title-row">
+          <span class="round-number">조회</span>
+          <div>
+            <h2 id="patrolResultViewerTitle">점검결과</h2>
+            <p class="section-guide">제출된 점검표를 읽기 전용으로 확인합니다. TBM 공유 또는 출력용으로 사용할 수 있습니다.</p>
+          </div>
+        </div>
+        <div id="patrolResultViewerBody"></div>
+      </section>
     </section>
 
     <section id="evaluationModule" class="evaluation-module" hidden>
@@ -444,6 +489,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=20260608_v28_3"></script>
+  <script src="script.js?v=20260608_v29"></script>
 </body>
 </html>

@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyD9sn5fj2tPGNRj1T1qLhxlLKc6hrc8uHU_SObHHKDn0cEXs6v5Vuv6-5trZYPSmM/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const IMAGE_COMPRESSION_CONFIG = {
   targetDataUrlLength: 260000,
   maxDataUrlLength: 360000,
@@ -112,7 +112,7 @@ const EVALUATION_ITEMS = [
     exampleSrc: 'assets/examples/example_7.png',
     guide: {
       href: './ISO가이드.pdf',
-      label: '📒 ISO 가이드 PDF 보기'
+      label: '📘 가이드'
     }
   }
 ];
@@ -336,20 +336,23 @@ function createFilePickerHtml(field) {
   const inputId = field.name + '_file';
   const hasExample = !!field.exampleSrc;
   const hasGuide = !!(field.guide && field.guide.href);
-  const hasSecondAction = hasExample || hasGuide;
-  const actionClass = hasSecondAction ? 'photo-actions with-example' : 'photo-actions no-example';
-  const secondActionHtml = hasExample
+  const actionClass = hasExample && hasGuide
+    ? 'photo-actions three-actions'
+    : (hasExample || hasGuide ? 'photo-actions with-example' : 'photo-actions no-example');
+  const exampleActionHtml = hasExample
     ? `<button type="button" class="example-btn" data-example-src="${escapeHtml(field.exampleSrc)}" data-example-title="${escapeHtml(field.label)}" data-example-caption="${escapeHtml(field.hint)}">📒 예시</button>`
-    : (hasGuide
-      ? `<a class="example-btn guide-view-btn" href="${escapeHtml(field.guide.href)}" target="_blank" rel="noopener">${escapeHtml(field.guide.label)}</a>`
-      : '');
+    : '';
+  const guideActionHtml = hasGuide
+    ? `<a class="example-btn guide-view-btn" href="${escapeHtml(field.guide.href)}" target="_blank" rel="noopener">${escapeHtml(field.guide.label)}</a>`
+    : '';
 
   return `
     <div class="photo-picker" data-file-picker="${escapeHtml(field.name)}">
       <input class="file-input-hidden" id="${inputId}" type="file" accept="image/*" multiple data-file-field="${escapeHtml(field.name)}" />
       <div class="${actionClass}">
         <label class="photo-btn attach" for="${inputId}">📎 첨부</label>
-        ${secondActionHtml}
+        ${exampleActionHtml}
+        ${guideActionHtml}
       </div>
       <p class="photo-add-guide">추가로 첨부해도 기존 사진은 유지됩니다. 제출 시 사진은 자동 압축되어 저장됩니다.</p>
       <div class="preview-row" id="${field.name}_preview">
@@ -2097,7 +2100,7 @@ function resetFormAfterSuccess() {
 
 
 /* ==============================
-   v28.3 주간 순회점검표 모듈
+   v29 주간 순회점검표 모듈
    - 기존 반기평가/임명 구조 유지
    - 주간 순회점검표 작성 + 지연 제출 판정 + 사진 가점용 데이터 저장
    ============================== */
@@ -2238,7 +2241,9 @@ function initPatrolModule() {
   bindPatrolOrgSelects();
   bindPatrolFileInputs();
   setupPatrolSignaturePad();
+  bindPatrolHistoryActions();
   updatePatrolWeekInfo();
+  initPatrolPastSearchControls();
   const formEl = document.getElementById('patrolForm');
   if (formEl) formEl.addEventListener('submit', handlePatrolSubmit);
 }
@@ -2275,39 +2280,85 @@ function loadOrganizationTree() {
 function renderPatrolItems() {
   const container = document.getElementById('patrolItemsContainer');
   if (!container) return;
-  container.innerHTML = PATROL_ITEMS.map(function (item) {
-    const photoField = 'patrol_photo_' + item.id;
-    const noteId = 'patrol_note_' + item.id;
-    return '<div class="patrol-check-item" data-patrol-item-card="' + item.id + '">' +
-      '<span class="patrol-check-meta">' + escapeHtml(item.category) + ' · ' + item.no + '번</span>' +
-      '<div class="patrol-check-title">' + escapeHtml(item.title) + '</div>' +
-      '<div class="patrol-result-buttons" role="radiogroup" aria-label="' + escapeHtml(item.title) + '">' +
-      '<label><input type="radio" name="' + item.id + '_result" value="양호" checked />양호</label>' +
-      '<label><input type="radio" name="' + item.id + '_result" value="미흡" />미흡</label>' +
-      '<label><input type="radio" name="' + item.id + '_result" value="해당없음" />해당없음</label>' +
-      '</div>' +
-      '<div class="patrol-item-tool-row">' +
-        '<button type="button" class="example-btn patrol-example-btn" data-example-src="' + escapeHtml(item.exampleSrc || '') + '" data-example-title="' + escapeHtml(item.no + '번 항목 예시') + '" data-example-caption="' + escapeHtml(item.title + ' PDF 예시와 점검기준입니다.') + '">📒 항목 예시</button>' +
-      '</div>' +
-      '<div class="patrol-insufficient-panel" data-patrol-insufficient-panel="' + item.id + '" hidden>' +
-        '<div class="patrol-insufficient-head"><strong>미흡사항 작성</strong><span>미흡 선택 시 사진과 내용을 필수로 남겨주세요.</span></div>' +
-        '<label class="patrol-insufficient-note">미흡사항 내용 <span class="required-mark">*</span>' +
-          '<textarea id="' + noteId + '" data-patrol-item-note="' + item.id + '" rows="3" maxlength="300" placeholder="예: 멀티탭 전선 피복 손상 확인, 사용 중지 후 교체 요청"></textarea>' +
-        '</label>' +
-        '<div class="patrol-item-photo-picker">' +
-          '<input class="file-input-hidden" id="' + photoField + '_file" type="file" accept="image/*" multiple data-patrol-file="' + photoField + '" />' +
-          '<label class="photo-btn attach patrol-item-photo-btn" for="' + photoField + '_file">📎 미흡사항 사진 첨부</label>' +
-          '<div id="' + photoField + '_preview" class="preview-row"><span data-patrol-preview="' + photoField + '"></span><button type="button" class="clear-file-btn" data-clear-patrol-file="' + photoField + '">삭제</button></div>' +
+
+  const categoryOrder = [];
+  const grouped = {};
+  PATROL_ITEMS.forEach(function (item) {
+    if (!grouped[item.category]) {
+      grouped[item.category] = [];
+      categoryOrder.push(item.category);
+    }
+    grouped[item.category].push(item);
+  });
+
+  container.innerHTML = categoryOrder.map(function (category, categoryIndex) {
+    const items = grouped[category] || [];
+    const itemHtml = items.map(function (item) {
+      const photoField = 'patrol_photo_' + item.id;
+      const noteId = 'patrol_note_' + item.id;
+      return '<div class="patrol-check-item" data-patrol-item-card="' + item.id + '">' +
+        '<span class="patrol-check-meta">' + escapeHtml(item.category) + ' · ' + item.no + '번</span>' +
+        '<div class="patrol-check-title">' + escapeHtml(item.title) + '</div>' +
+        '<div class="patrol-result-buttons" role="radiogroup" aria-label="' + escapeHtml(item.title) + '">' +
+        '<label><input type="radio" name="' + item.id + '_result" value="양호" checked />양호</label>' +
+        '<label><input type="radio" name="' + item.id + '_result" value="미흡" />미흡</label>' +
+        '<label><input type="radio" name="' + item.id + '_result" value="해당없음" />해당없음</label>' +
         '</div>' +
-      '</div>' +
-      '</div>';
+        '<div class="patrol-item-tool-row">' +
+          '<button type="button" class="example-btn patrol-example-btn" data-example-src="' + escapeHtml(item.exampleSrc || '') + '" data-example-title="' + escapeHtml(item.no + '번 항목 예시') + '" data-example-caption="' + escapeHtml(item.title + ' PDF 예시와 점검기준입니다.') + '">📒 항목 예시</button>' +
+        '</div>' +
+        '<div class="patrol-insufficient-panel" data-patrol-insufficient-panel="' + item.id + '" hidden>' +
+          '<div class="patrol-insufficient-head"><strong>미흡사항 작성</strong><span>미흡 선택 시 사진과 내용을 필수로 남겨주세요.</span></div>' +
+          '<label class="patrol-insufficient-note">미흡사항 내용 <span class="required-mark">*</span>' +
+            '<textarea id="' + noteId + '" data-patrol-item-note="' + item.id + '" rows="3" maxlength="300" placeholder="예: 멀티탭 전선 피복 손상 확인, 사용 중지 후 교체 요청"></textarea>' +
+          '</label>' +
+          '<div class="patrol-item-photo-picker">' +
+            '<input class="file-input-hidden" id="' + photoField + '_file" type="file" accept="image/*" multiple data-patrol-file="' + photoField + '" />' +
+            '<label class="photo-btn attach patrol-item-photo-btn" for="' + photoField + '_file">📎 미흡사항 사진 첨부</label>' +
+            '<div id="' + photoField + '_preview" class="preview-row"><span data-patrol-preview="' + photoField + '"></span><button type="button" class="clear-file-btn" data-clear-patrol-file="' + photoField + '">삭제</button></div>' +
+          '</div>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+
+    return '<details class="patrol-category-section" ' + (categoryIndex === 0 ? 'open' : '') + ' data-patrol-category="' + escapeHtml(category) + '">' +
+      '<summary class="patrol-category-summary">' +
+        '<span class="patrol-category-name">' + escapeHtml(category) + '</span>' +
+        '<span class="patrol-category-count">' + items.length + '개 항목</span>' +
+        '<span class="patrol-category-status" data-patrol-category-status="' + escapeHtml(category) + '">미흡 0건</span>' +
+      '</summary>' +
+      '<div class="patrol-category-body"><div class="patrol-category-grid">' + itemHtml + '</div></div>' +
+    '</details>';
   }).join('');
+
   PATROL_ITEMS.forEach(function (item) {
     document.querySelectorAll('input[name="' + item.id + '_result"]').forEach(function (radio) {
-      radio.addEventListener('change', function () { applyPatrolItemState(item.id); });
+      radio.addEventListener('change', function () { applyPatrolItemState(item.id); updatePatrolCategoryStatus(); });
     });
     applyPatrolItemState(item.id);
   });
+  updatePatrolCategoryStatus();
+}
+
+function updatePatrolCategoryStatus() {
+  const counts = {};
+  PATROL_ITEMS.forEach(function (item) {
+    if (!counts[item.category]) counts[item.category] = 0;
+    const checked = document.querySelector('input[name="' + item.id + '_result"]:checked');
+    if (checked && checked.value === '미흡') counts[item.category] += 1;
+  });
+  Object.keys(counts).forEach(function (category) {
+    const status = document.querySelector('[data-patrol-category-status="' + cssEscapeSafe(category) + '"]');
+    if (!status) return;
+    const count = counts[category] || 0;
+    status.textContent = count ? '미흡 ' + count + '건' : '미흡 0건';
+    status.classList.toggle('has-insufficient', count > 0);
+  });
+}
+
+function cssEscapeSafe(value) {
+  if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(value);
+  return String(value || '').replace(/\"/g, '\"');
 }
 
 function applyPatrolItemState(itemId) {
@@ -2814,6 +2865,268 @@ function waitForPatrolStatus(submissionId) {
     }
     poll();
   });
+}
+
+
+function bindPatrolHistoryActions() {
+  const prevBtn = document.getElementById('patrolPrevWeekBtn');
+  const toggleBtn = document.getElementById('patrolPastSearchToggleBtn');
+  const searchBtn = document.getElementById('patrolPastSearchBtn');
+  if (prevBtn) prevBtn.addEventListener('click', function () {
+    loadPatrolResultForWeek(getPatrolRelativeWeekInfo(-1), '전주 점검결과');
+  });
+  if (toggleBtn) toggleBtn.addEventListener('click', function () {
+    const box = document.getElementById('patrolPastSearchBox');
+    if (!box) return;
+    box.hidden = !box.hidden;
+    if (!box.hidden) initPatrolPastSearchControls();
+  });
+  if (searchBtn) searchBtn.addEventListener('click', function () {
+    const year = Number((document.getElementById('patrolSearchYear') || {}).value || 0);
+    const month = Number((document.getElementById('patrolSearchMonth') || {}).value || 0);
+    const weekNo = Number((document.getElementById('patrolSearchWeek') || {}).value || 0);
+    if (!year || !month || !weekNo) {
+      setPatrolResult('error', '조회할 연도, 월, 주차를 선택해주세요.');
+      return;
+    }
+    loadPatrolResultForWeek(makePatrolWeekInfoFromParts(year, month, weekNo), '과거 점검결과');
+  });
+}
+
+function initPatrolPastSearchControls() {
+  const yearSelect = document.getElementById('patrolSearchYear');
+  const monthSelect = document.getElementById('patrolSearchMonth');
+  const weekSelect = document.getElementById('patrolSearchWeek');
+  if (!yearSelect || !monthSelect || !weekSelect) return;
+  const current = patrolWeekInfo || getCurrentPatrolWeekInfo();
+  if (!yearSelect.options.length) {
+    for (let y = current.year - 1; y <= current.year + 1; y++) {
+      const opt = document.createElement('option');
+      opt.value = String(y);
+      opt.textContent = y + '년';
+      yearSelect.appendChild(opt);
+    }
+  }
+  if (!monthSelect.options.length) {
+    for (let m = 1; m <= 12; m++) {
+      const opt = document.createElement('option');
+      opt.value = String(m);
+      opt.textContent = m + '월';
+      monthSelect.appendChild(opt);
+    }
+  }
+  if (!weekSelect.options.length) {
+    for (let w = 1; w <= 6; w++) {
+      const opt = document.createElement('option');
+      opt.value = String(w);
+      opt.textContent = w + '주차';
+      weekSelect.appendChild(opt);
+    }
+  }
+  yearSelect.value = String(current.year);
+  monthSelect.value = String(current.month);
+  weekSelect.value = String(current.weekNo);
+}
+
+function getPatrolRelativeWeekInfo(offsetWeeks) {
+  const current = patrolWeekInfo || getCurrentPatrolWeekInfo();
+  const base = new Date(current.startDate + 'T00:00:00');
+  base.setDate(base.getDate() + (offsetWeeks * 7));
+  return getPatrolWeekInfoByDate(base);
+}
+
+function getPatrolWeekInfoByDate(date) {
+  const base = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diff = (base.getDay() + 6) % 7;
+  const start = new Date(base);
+  start.setDate(base.getDate() - diff);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
+  const firstDiff = (monthStart.getDay() + 6) % 7;
+  const weekNo = Math.floor((start.getDate() + firstDiff - 1) / 7) + 1;
+  const year = start.getFullYear();
+  const month = start.getMonth() + 1;
+  const weekKey = year + '-' + String(month).padStart(2, '0') + '-W' + String(weekNo).padStart(2, '0');
+  return { year, month, weekNo, weekKey, startDate: toDateOnly(start), endDate: toDateOnly(end) };
+}
+
+function makePatrolWeekInfoFromParts(year, month, weekNo) {
+  const weekKey = year + '-' + String(month).padStart(2, '0') + '-W' + String(weekNo).padStart(2, '0');
+  return { year, month, weekNo, weekKey, startDate: '', endDate: '' };
+}
+
+async function loadPatrolResultForWeek(weekInfo, titlePrefix) {
+  setPatrolResult('', '');
+  if (!validateAppsScriptUrl()) return;
+  if (!validateOrganizationLoaded()) return;
+  const basic = getPatrolBasicInfo();
+  if (!basic.storeName) {
+    setPatrolResult('error', '점검결과를 조회할 매장을 먼저 선택해주세요.');
+    const store = document.getElementById('patrolStoreSelect');
+    if (store && store.focus) store.focus();
+    return;
+  }
+  if (!basic.employeeId) {
+    setPatrolResult('error', '현재 임명된 관리감독자를 먼저 선택해주세요.');
+    const card = document.getElementById('patrolAppointmentListCard');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  const viewer = document.getElementById('patrolResultViewer');
+  const body = document.getElementById('patrolResultViewerBody');
+  const title = document.getElementById('patrolResultViewerTitle');
+  if (viewer) viewer.hidden = false;
+  if (title) title.textContent = titlePrefix + ' - ' + weekInfo.weekKey;
+  if (body) body.innerHTML = '<div class="inline-message pending">점검결과를 불러오는 중입니다...</div>';
+  if (viewer) viewer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    const data = await jsonpRequest({
+      mode: 'patrolDetail',
+      storeName: basic.storeName,
+      employeeId: basic.employeeId,
+      weekKey: weekInfo.weekKey
+    }, 30000);
+    renderPatrolResultViewer(data, titlePrefix, weekInfo);
+  } catch (err) {
+    if (body) body.innerHTML = '<div class="inline-message error">점검결과 조회 중 오류가 발생했습니다. ' + escapeHtml(err.message) + '</div>';
+  }
+}
+
+function renderPatrolResultViewer(data, titlePrefix, weekInfo) {
+  const body = document.getElementById('patrolResultViewerBody');
+  const title = document.getElementById('patrolResultViewerTitle');
+  if (!body) return;
+  if (!data || data.success === false || !data.found) {
+    body.innerHTML = '<div class="patrol-empty-result">' +
+      '<strong>제출된 점검표가 없습니다.</strong>' +
+      '<p>' + escapeHtml((data && data.message) || '선택한 매장·관리감독자·주차 기준 제출 내역이 없습니다.') + '</p>' +
+      '<p class="modal-small-text">조회 주차: ' + escapeHtml(weekInfo.weekKey) + '</p>' +
+      '</div>';
+    return;
+  }
+  const rec = data.record || {};
+  if (title) title.textContent = titlePrefix + ' - ' + (rec.weekLabel || rec.weekKey || weekInfo.weekKey);
+  const summary = rec.summary || {};
+  const insufficientItems = (rec.items || []).filter(function (item) { return item.result === '미흡'; });
+  const tbmText = buildPatrolTbmText(rec, insufficientItems);
+  const categories = groupPatrolResultItems(rec.items || []);
+  const detailHtml = Object.keys(categories).map(function (category, index) {
+    const items = categories[category];
+    const bad = items.filter(function (item) { return item.result === '미흡'; }).length;
+    return '<details class="patrol-result-category" ' + (index === 0 || bad > 0 ? 'open' : '') + '>' +
+      '<summary><strong>' + escapeHtml(category) + '</strong><span>' + items.length + '개 항목 · 미흡 ' + bad + '건</span></summary>' +
+      '<div class="patrol-result-item-list">' + items.map(renderPatrolResultItem).join('') + '</div>' +
+      '</details>';
+  }).join('');
+  body.innerHTML = '<div class="patrol-result-toolbar no-print">' +
+      '<button type="button" class="sub-btn" id="copyPatrolTbmBtn">TBM 공유문구 복사</button>' +
+      '<button type="button" class="sub-btn" id="printPatrolResultBtn">점검결과 인쇄/저장</button>' +
+    '</div>' +
+    '<div class="patrol-print-area" id="patrolPrintArea">' +
+      '<div class="patrol-result-header">' +
+        '<div><span class="badge-soft">읽기 전용</span><h3>관리감독자 주간 순회점검표</h3><p>' + escapeHtml(rec.weekLabel || rec.weekKey || '') + '</p></div>' +
+        '<div class="patrol-result-status ' + escapeHtml(rec.submitStatusClass || '') + '">' + escapeHtml(rec.submitStatus || '') + '</div>' +
+      '</div>' +
+      '<div class="patrol-result-info-grid">' +
+        '<div><b>매장명</b><span>' + escapeHtml(rec.storeName || '') + '</span></div>' +
+        '<div><b>점검자</b><span>' + escapeHtml((rec.supervisorName || '') + ' / ' + (rec.employeeId || '')) + '</span></div>' +
+        '<div><b>제출일시</b><span>' + escapeHtml(rec.submittedAt || '') + '</span></div>' +
+        '<div><b>주차</b><span>' + escapeHtml(rec.weekKey || '') + '</span></div>' +
+      '</div>' +
+      '<div class="patrol-result-summary-grid">' +
+        '<div><strong>' + (summary.total || 0) + '</strong><span>총 항목</span></div>' +
+        '<div><strong>' + (summary.good || 0) + '</strong><span>양호</span></div>' +
+        '<div><strong>' + (summary.bad || 0) + '</strong><span>미흡</span></div>' +
+        '<div><strong>' + (summary.na || 0) + '</strong><span>해당없음</span></div>' +
+        '<div><strong>' + (summary.validPhotos || 0) + '</strong><span>유효사진</span></div>' +
+      '</div>' +
+      '<div class="patrol-tbm-box">' +
+        '<h3>TBM 공유용 요약</h3>' +
+        renderPatrolTbmSummary(insufficientItems, rec) +
+      '</div>' +
+      '<div class="patrol-result-detail">' + detailHtml + '</div>' +
+    '</div>';
+  const copyBtn = document.getElementById('copyPatrolTbmBtn');
+  if (copyBtn) copyBtn.addEventListener('click', function () { copyTextToClipboard(tbmText); });
+  const printBtn = document.getElementById('printPatrolResultBtn');
+  if (printBtn) printBtn.addEventListener('click', function () { window.print(); });
+}
+
+function groupPatrolResultItems(items) {
+  return (items || []).reduce(function (acc, item) {
+    const key = item.category || '기타';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+}
+
+function renderPatrolResultItem(item) {
+  const cls = item.result === '미흡' ? 'bad' : (item.result === '해당없음' ? 'na' : 'good');
+  const photos = (item.photoUrls || []).map(function (url, index) {
+    return '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">사진 ' + (index + 1) + '</a>';
+  }).join('');
+  return '<div class="patrol-result-item ' + cls + '">' +
+    '<div class="patrol-result-item-head"><strong>' + escapeHtml(item.no + '. ' + item.title) + '</strong><span>' + escapeHtml(item.result || '') + '</span></div>' +
+    (item.note ? '<p><b>미흡내용</b> ' + escapeHtml(item.note) + '</p>' : '') +
+    (photos ? '<div class="patrol-result-photos"><b>첨부사진</b> ' + photos + '</div>' : '') +
+    '</div>';
+}
+
+function renderPatrolTbmSummary(insufficientItems, rec) {
+  if (!insufficientItems.length) {
+    return '<p class="patrol-tbm-empty">전주 점검결과 미흡사항은 없습니다. 이번 주에도 통로 확보, 창고 정리정돈, 전기·소방 상태를 유지해주세요.</p>';
+  }
+  return '<ol>' + insufficientItems.map(function (item) {
+    return '<li><strong>' + escapeHtml(item.title || '') + '</strong><br>' +
+      '<span>미흡내용: ' + escapeHtml(item.note || '미흡내용 확인 필요') + '</span><br>' +
+      '<span>공유사항: 동일 위험요인이 반복되지 않도록 작업 전 확인 바랍니다.</span></li>';
+  }).join('') + '</ol>';
+}
+
+function buildPatrolTbmText(rec, insufficientItems) {
+  const lines = [];
+  lines.push('[전주 순회점검 TBM 공유자료]');
+  lines.push('매장: ' + (rec.storeName || ''));
+  lines.push('점검주차: ' + (rec.weekLabel || rec.weekKey || ''));
+  lines.push('제출상태: ' + (rec.submitStatus || ''));
+  lines.push('');
+  if (!insufficientItems.length) {
+    lines.push('전주 점검결과 미흡사항은 없습니다.');
+    lines.push('이번 주에도 통로 확보, 창고 정리정돈, 전기·소방 상태를 유지해주세요.');
+  } else {
+    lines.push('주요 미흡사항');
+    insufficientItems.forEach(function (item, index) {
+      lines.push((index + 1) + '. ' + (item.title || ''));
+      lines.push('- 미흡내용: ' + (item.note || '미흡내용 확인 필요'));
+      lines.push('- 공유사항: 동일 위험요인이 반복되지 않도록 작업 전 확인 바랍니다.');
+    });
+  }
+  return lines.join('\n');
+}
+
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      showSubmitModal({ type: 'success', title: '복사 완료', html: 'TBM 공유문구가 복사되었습니다.', confirmText: '확인' });
+    }).catch(function () { fallbackCopyText(text); });
+  } else {
+    fallbackCopyText(text);
+  }
+}
+
+function fallbackCopyText(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); } catch (err) {}
+  document.body.removeChild(ta);
+  showSubmitModal({ type: 'success', title: '복사 완료', html: 'TBM 공유문구가 복사되었습니다.', confirmText: '확인' });
 }
 
 function setPatrolResult(type, msg) {

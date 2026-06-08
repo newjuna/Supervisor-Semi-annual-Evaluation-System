@@ -2391,3 +2391,473 @@ textarea:focus {
 .patrol-item-photo-btn { width: 100%; background: #fff; border-color: #e60012; color: #e60012; }
 .patrol-check-item.insufficient .patrol-check-title { color: #b91c1c; }
 @media (max-width: 720px) { .patrol-example-btn, .patrol-item-photo-btn { min-height: 52px; } }
+
+
+/* ==============================
+   v28.4 반기평가 7번 가이드 버튼 + 순회점검 구분별 접이식 탭
+   ============================== */
+.photo-actions.three-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+.photo-actions.three-actions .photo-btn,
+.photo-actions.three-actions .example-btn,
+.photo-actions.three-actions .guide-view-btn {
+  height: 58px;
+  min-height: 58px;
+  padding: 0 10px;
+  font-size: 14px;
+  white-space: normal;
+}
+.photo-actions.three-actions .guide-view-btn {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+}
+
+.patrol-check-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.patrol-category-section {
+  border: 1px solid rgba(13, 27, 54, 0.10);
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(13, 27, 54, 0.04);
+  overflow: hidden;
+}
+.patrol-category-section + .patrol-category-section {
+  margin-top: 12px;
+}
+.patrol-category-summary {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  cursor: pointer;
+  user-select: none;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+.patrol-category-summary::-webkit-details-marker { display: none; }
+.patrol-category-summary::after {
+  content: "펼치기";
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 1000;
+}
+.patrol-category-section[open] .patrol-category-summary::after {
+  content: "접기";
+  background: #f1f5f9;
+  color: #475569;
+}
+.patrol-category-name {
+  color: var(--navy);
+  font-size: 18px;
+  font-weight: 1000;
+  letter-spacing: -0.04em;
+}
+.patrol-category-count,
+.patrol-category-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 1000;
+  white-space: nowrap;
+}
+.patrol-category-count {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+.patrol-category-status {
+  background: #ecfdf5;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.patrol-category-status.has-insufficient {
+  background: #fff1f2;
+  color: var(--red);
+  border-color: #fecdd3;
+}
+.patrol-category-body {
+  padding: 0 14px 14px;
+}
+.patrol-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .photo-actions.three-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .photo-actions.three-actions .photo-btn,
+  .photo-actions.three-actions .example-btn,
+  .photo-actions.three-actions .guide-view-btn {
+    height: 56px;
+    min-height: 56px;
+    font-size: 13px;
+  }
+  .patrol-category-summary {
+    grid-template-columns: 1fr auto;
+    padding: 15px;
+  }
+  .patrol-category-status {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+  .patrol-category-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==============================
+   v29 전주/과거 순회점검 결과 조회
+   ============================== */
+.patrol-history-card {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 22px;
+  border: 1px solid #e5e7eb;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+.patrol-history-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.patrol-history-head strong {
+  display: block;
+  color: var(--navy);
+  font-size: 16px;
+  font-weight: 1000;
+}
+.patrol-history-head span {
+  display: block;
+  margin-top: 4px;
+  color: var(--gray-500);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.patrol-history-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.patrol-history-btn {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+.patrol-history-btn.secondary {
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+.patrol-past-search {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+}
+.patrol-query-btn {
+  width: 100%;
+  margin-top: 8px;
+  background: var(--navy);
+  color: #fff;
+  border-color: var(--navy);
+}
+.patrol-result-viewer {
+  margin-top: 18px;
+}
+.patrol-empty-result {
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px dashed #fca5a5;
+  background: #fff7f7;
+  color: #991b1b;
+  line-height: 1.55;
+}
+.patrol-empty-result strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 17px;
+}
+.patrol-result-toolbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.patrol-result-toolbar .sub-btn {
+  min-height: 48px;
+}
+.patrol-print-area {
+  border: 1px solid #e5e7eb;
+  border-radius: 24px;
+  background: #ffffff;
+  padding: 18px;
+}
+.patrol-result-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.badge-soft {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1e40af;
+  font-weight: 900;
+  font-size: 12px;
+}
+.patrol-result-header h3 {
+  margin: 8px 0 4px;
+  color: var(--navy);
+  font-size: 22px;
+  letter-spacing: -0.04em;
+}
+.patrol-result-header p {
+  margin: 0;
+  color: var(--gray-500);
+  font-weight: 800;
+}
+.patrol-result-status {
+  flex: 0 0 auto;
+  min-width: 88px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  text-align: center;
+  font-weight: 1000;
+  background: #dbeafe;
+  color: #1e40af;
+}
+.patrol-result-status.late { background: #fee2e2; color: #991b1b; }
+.patrol-result-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+.patrol-result-info-grid div {
+  padding: 12px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+.patrol-result-info-grid b {
+  display: block;
+  color: var(--gray-500);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.patrol-result-info-grid span {
+  display: block;
+  color: var(--gray-900);
+  font-weight: 900;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+.patrol-result-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.patrol-result-summary-grid div {
+  padding: 12px 8px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+}
+.patrol-result-summary-grid strong {
+  display: block;
+  color: var(--red);
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+.patrol-result-summary-grid span {
+  color: var(--gray-500);
+  font-size: 12px;
+  font-weight: 900;
+}
+.patrol-tbm-box {
+  margin: 14px 0;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid #fecdd3;
+  background: #fff7f7;
+}
+.patrol-tbm-box h3 {
+  margin: 0 0 10px;
+  color: var(--red);
+  font-size: 18px;
+}
+.patrol-tbm-box ol {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--gray-900);
+  line-height: 1.65;
+}
+.patrol-tbm-box li { margin: 8px 0; }
+.patrol-tbm-empty {
+  margin: 0;
+  color: var(--gray-700);
+  line-height: 1.6;
+  font-weight: 800;
+}
+.patrol-result-category {
+  margin-top: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+}
+.patrol-result-category summary {
+  cursor: pointer;
+  padding: 13px 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  background: #f8fafc;
+  color: var(--navy);
+  font-weight: 1000;
+}
+.patrol-result-category summary span {
+  color: var(--gray-500);
+  font-size: 13px;
+  font-weight: 900;
+}
+.patrol-result-item-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+.patrol-result-item {
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+.patrol-result-item.bad { border-color: #fecaca; background: #fff7f7; }
+.patrol-result-item.na { background: #f8fafc; color: #64748b; }
+.patrol-result-item-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+.patrol-result-item-head strong {
+  color: var(--navy);
+  line-height: 1.4;
+}
+.patrol-result-item-head span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #dbeafe;
+  color: #1e40af;
+  font-weight: 900;
+  font-size: 12px;
+}
+.patrol-result-item.bad .patrol-result-item-head span { background: #fee2e2; color: #991b1b; }
+.patrol-result-item.na .patrol-result-item-head span { background: #e5e7eb; color: #475569; }
+.patrol-result-item p {
+  margin: 9px 0 0;
+  color: var(--gray-700);
+  line-height: 1.55;
+}
+.patrol-result-photos {
+  margin-top: 9px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.patrol-result-photos b {
+  color: var(--gray-500);
+}
+.patrol-result-photos a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1e40af;
+  text-decoration: none;
+  font-weight: 900;
+  font-size: 13px;
+}
+@media (max-width: 720px) {
+  .patrol-history-actions,
+  .patrol-result-toolbar,
+  .patrol-result-info-grid {
+    grid-template-columns: 1fr;
+  }
+  .patrol-result-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .patrol-result-header {
+    display: block;
+  }
+  .patrol-result-status {
+    display: inline-flex;
+    margin-top: 10px;
+  }
+}
+@media print {
+  body { background: #fff !important; }
+  .no-print,
+  .hero,
+  .module-select-card,
+  #patrolForm,
+  #evaluationModule,
+  #appointmentModule,
+  .patrol-guide,
+  .submit-modal,
+  .loading-overlay {
+    display: none !important;
+  }
+  #patrolModule,
+  #patrolResultViewer {
+    display: block !important;
+  }
+  .page {
+    max-width: none;
+    padding: 0;
+  }
+  .card,
+  .patrol-print-area {
+    box-shadow: none !important;
+    border: 0;
+  }
+  .patrol-result-category details,
+  .patrol-result-category {
+    break-inside: avoid;
+  }
+}
