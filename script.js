@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyiPYXJ41iLkq2RZH7cBl9hT-9IypAyIMp853jj1K2WdTZsQOBVEIvwBcPW2p2tAaRW/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const IMAGE_COMPRESSION_CONFIG = {
   targetDataUrlLength: 260000,
   maxDataUrlLength: 360000,
@@ -2100,7 +2100,7 @@ function resetFormAfterSuccess() {
 
 
 /* ==============================
-   v29 주간 순회점검표 모듈
+   v30 주간 순회점검표 모듈
    - 기존 반기평가/임명 구조 유지
    - 주간 순회점검표 작성 + 지연 제출 판정 + 사진 가점용 데이터 저장
    ============================== */
@@ -2157,30 +2157,92 @@ function initV19ModuleSwitch() {
   evaluationModule.hidden = true;
   appointmentModule.hidden = true;
   if (patrolModule) patrolModule.hidden = true;
-  showEvaluationBtn.classList.remove('active');
-  showAppointmentBtn.classList.remove('active');
-  if (showPatrolBtn) showPatrolBtn.classList.remove('active');
+  setHomeVisibility(true);
+  syncGlobalModuleNavigation('home');
 
-  showEvaluationBtn.addEventListener('click', async function () {
-    const proceed = await showSubmitModal({
-      type: 'confirm',
-      title: '관리감독자 임명 확인 안내',
-      html: '반기 업무수행평가는 <strong>관리감독자 임명이 완료된 매장</strong>만 진행할 수 있습니다.<br><br>' +
-        '<div class="modal-info-box">' +
-        '<div><b>1단계</b><span>관리감독자 임명/변경 등록</span></div>' +
-        '<div><b>2단계</b><span>주간 순회점검표 작성 누적</span></div>' +
-        '<div><b>3단계</b><span>반기평가 진행</span></div>' +
-        '</div>' +
-        '<p class="modal-small-text">아직 임명 등록이 안 되어 있으면 먼저 임명/변경을 진행해주세요.</p>',
-      confirmText: '임명 완료, 평가 진행하기',
-      cancelText: '임명/변경 먼저 하기'
+  function bindClick(button, handler) {
+    if (!button) return;
+    button.addEventListener('click', handler);
+  }
+
+  bindClick(showAppointmentBtn, function () { switchToAppointmentModule(); });
+  bindClick(showPatrolBtn, function () { switchToPatrolModule(); });
+  bindClick(showEvaluationBtn, function () { openEvaluationModuleWithPrompt(); });
+
+  document.querySelectorAll('[data-nav-module]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      const target = button.getAttribute('data-nav-module');
+      if (target === 'home') showHomeModule();
+      if (target === 'appointment') switchToAppointmentModule();
+      if (target === 'patrol') switchToPatrolModule();
+      if (target === 'evaluation') openEvaluationModuleWithPrompt();
     });
-    if (!proceed) { switchToAppointmentModule(); return; }
-    switchToEvaluationModule();
+  });
+}
+
+function syncGlobalModuleNavigation(activeModule) {
+  const map = {
+    appointment: 'showAppointmentModuleBtn',
+    patrol: 'showPatrolModuleBtn',
+    evaluation: 'showEvaluationModuleBtn'
+  };
+
+  Object.keys(map).forEach(function (key) {
+    const btn = document.getElementById(map[key]);
+    if (btn) btn.classList.toggle('active', key === activeModule);
   });
 
-  showAppointmentBtn.addEventListener('click', function () { switchToAppointmentModule(); });
-  if (showPatrolBtn) showPatrolBtn.addEventListener('click', function () { switchToPatrolModule(); });
+  document.querySelectorAll('[data-nav-module]').forEach(function (button) {
+    const isActive = button.getAttribute('data-nav-module') === activeModule;
+    button.classList.toggle('active', isActive);
+    if (isActive) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+
+  const label = activeModule === 'appointment'
+    ? '선임/해임 신고'
+    : (activeModule === 'patrol' ? '주간순회점검' : (activeModule === 'evaluation' ? '반기평가' : '업무 홈'));
+  const chip = document.querySelector('.system-chip');
+  if (chip) chip.textContent = label;
+}
+
+function setHomeVisibility(show) {
+  const homeHero = document.getElementById('homeHero');
+  const moduleSelectCard = document.getElementById('moduleSelectCard');
+  if (homeHero) homeHero.hidden = !show;
+  if (moduleSelectCard) moduleSelectCard.hidden = !show;
+  if (pageRoot) pageRoot.classList.toggle('module-active', !show);
+}
+
+function showHomeModule() {
+  const evaluationModule = document.getElementById('evaluationModule');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const patrolModule = document.getElementById('patrolModule');
+  if (evaluationModule) evaluationModule.hidden = true;
+  if (appointmentModule) appointmentModule.hidden = true;
+  if (patrolModule) patrolModule.hidden = true;
+  setHomeVisibility(true);
+  syncGlobalModuleNavigation('home');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+
+async function openEvaluationModuleWithPrompt() {
+  const proceed = await showSubmitModal({
+    type: 'confirm',
+    title: '관리감독자 임명 확인 안내',
+    html: '반기평가는 <strong>관리감독자 임명이 완료된 매장</strong>만 진행할 수 있습니다.<br><br>' +
+      '<div class="modal-info-box">' +
+      '<div><b>1단계</b><span>선임/해임 신고 등록</span></div>' +
+      '<div><b>2단계</b><span>주간순회점검 작성 누적</span></div>' +
+      '<div><b>3단계</b><span>반기평가 진행</span></div>' +
+      '</div>' +
+      '<p class="modal-small-text">아직 선임 등록이 안 되어 있으면 먼저 선임/해임 신고를 진행해주세요.</p>',
+    confirmText: '임명 완료, 평가 진행하기',
+    cancelText: '선임/해임 먼저 하기'
+  });
+  if (!proceed) { switchToAppointmentModule(); return; }
+  switchToEvaluationModule();
 }
 
 function switchToAppointmentModule() {
@@ -2190,12 +2252,14 @@ function switchToAppointmentModule() {
   const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
   const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
   const showPatrolBtn = document.getElementById('showPatrolModuleBtn');
+  setHomeVisibility(false);
   if (evaluationModule) evaluationModule.hidden = true;
   if (appointmentModule) appointmentModule.hidden = false;
   if (patrolModule) patrolModule.hidden = true;
   if (showAppointmentBtn) showAppointmentBtn.classList.add('active');
   if (showEvaluationBtn) showEvaluationBtn.classList.remove('active');
   if (showPatrolBtn) showPatrolBtn.classList.remove('active');
+  syncGlobalModuleNavigation('appointment');
   ensureAppointmentStoreRow();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -2207,12 +2271,14 @@ function switchToEvaluationModule() {
   const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
   const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
   const showPatrolBtn = document.getElementById('showPatrolModuleBtn');
+  setHomeVisibility(false);
   if (evaluationModule) evaluationModule.hidden = false;
   if (appointmentModule) appointmentModule.hidden = true;
   if (patrolModule) patrolModule.hidden = true;
   if (showEvaluationBtn) showEvaluationBtn.classList.add('active');
   if (showAppointmentBtn) showAppointmentBtn.classList.remove('active');
   if (showPatrolBtn) showPatrolBtn.classList.remove('active');
+  syncGlobalModuleNavigation('evaluation');
   showEntryPage(false);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -2224,12 +2290,14 @@ function switchToPatrolModule() {
   const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
   const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
   const showPatrolBtn = document.getElementById('showPatrolModuleBtn');
+  setHomeVisibility(false);
   if (evaluationModule) evaluationModule.hidden = true;
   if (appointmentModule) appointmentModule.hidden = true;
   if (patrolModule) patrolModule.hidden = false;
   if (showEvaluationBtn) showEvaluationBtn.classList.remove('active');
   if (showAppointmentBtn) showAppointmentBtn.classList.remove('active');
   if (showPatrolBtn) showPatrolBtn.classList.add('active');
+  syncGlobalModuleNavigation('patrol');
   updatePatrolWeekInfo();
   populatePatrolHeadquarters();
   setTimeout(function () { resizePatrolSignatureCanvas(true); }, 120);
@@ -2800,7 +2868,7 @@ async function handlePatrolSubmit(event) {
         '<div><b>제출상태</b><span>' + escapeHtml(status.submitStatus || '저장 완료') + '</span></div>' +
         '<div><b>매장명</b><span>' + escapeHtml(basic.storeName) + '</span></div>' +
         '<div><b>주차</b><span>' + escapeHtml(patrolWeekInfo.weekKey) + '</span></div>' +
-        '</div><p class="modal-small-text">제출 결과는 순회점검_DB와 월별/반기 집계 시트에 자동 반영됩니다.</p>',
+        '</div><p class="modal-small-text">제출 결과는 순회점검_DB에 저장되며, 전주·과거 조회 화면에서 다시 확인할 수 있습니다.</p>',
       confirmText: '확인'
     });
     resetPatrolFormAfterSuccess();
@@ -2872,15 +2940,31 @@ function bindPatrolHistoryActions() {
   const prevBtn = document.getElementById('patrolPrevWeekBtn');
   const toggleBtn = document.getElementById('patrolPastSearchToggleBtn');
   const searchBtn = document.getElementById('patrolPastSearchBtn');
-  if (prevBtn) prevBtn.addEventListener('click', function () {
+  const quickPrevBtn = document.getElementById('patrolQuickPrevBtn');
+  const quickSearchBtn = document.getElementById('patrolQuickSearchBtn');
+  const quickWriteBtn = document.getElementById('patrolQuickWriteBtn');
+  const quickTopBtn = document.getElementById('patrolQuickTopBtn');
+
+  function openPreviousWeek() {
     loadPatrolResultForWeek(getPatrolRelativeWeekInfo(-1), '전주 점검결과');
+  }
+  function openPastSearch() {
+    openPatrolSearchModal();
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', openPreviousWeek);
+  if (quickPrevBtn) quickPrevBtn.addEventListener('click', openPreviousWeek);
+  if (toggleBtn) toggleBtn.addEventListener('click', openPastSearch);
+  if (quickSearchBtn) quickSearchBtn.addEventListener('click', openPastSearch);
+  if (quickWriteBtn) quickWriteBtn.addEventListener('click', function () {
+    const section = document.querySelector('#patrolModule .basic-info-section');
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
-  if (toggleBtn) toggleBtn.addEventListener('click', function () {
-    const box = document.getElementById('patrolPastSearchBox');
-    if (!box) return;
-    box.hidden = !box.hidden;
-    if (!box.hidden) initPatrolPastSearchControls();
+  if (quickTopBtn) quickTopBtn.addEventListener('click', function () {
+    const module = document.getElementById('patrolModule');
+    if (module) module.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
+
   if (searchBtn) searchBtn.addEventListener('click', function () {
     const year = Number((document.getElementById('patrolSearchYear') || {}).value || 0);
     const month = Number((document.getElementById('patrolSearchMonth') || {}).value || 0);
@@ -2889,7 +2973,79 @@ function bindPatrolHistoryActions() {
       setPatrolResult('error', '조회할 연도, 월, 주차를 선택해주세요.');
       return;
     }
+    closePatrolSearchModal();
     loadPatrolResultForWeek(makePatrolWeekInfoFromParts(year, month, weekNo), '과거 점검결과');
+  });
+
+  document.querySelectorAll('[data-patrol-search-close]').forEach(function (el) {
+    el.addEventListener('click', closePatrolSearchModal);
+  });
+  document.querySelectorAll('[data-patrol-result-close]').forEach(function (el) {
+    el.addEventListener('click', closePatrolResultModal);
+  });
+  bindPatrolPopupEscapeOnce();
+}
+
+function openPatrolSearchModal() {
+  if (!validatePatrolLookupBase()) return;
+  initPatrolPastSearchControls();
+  const modal = document.getElementById('patrolSearchModal');
+  if (modal) {
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+  }
+}
+
+function closePatrolSearchModal() {
+  const modal = document.getElementById('patrolSearchModal');
+  if (modal) modal.hidden = true;
+  if (document.getElementById('patrolResultModal') && !document.getElementById('patrolResultModal').hidden) return;
+  document.body.classList.remove('modal-open');
+}
+
+function openPatrolResultModal() {
+  const modal = document.getElementById('patrolResultModal');
+  if (modal) {
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+  }
+}
+
+function closePatrolResultModal() {
+  const modal = document.getElementById('patrolResultModal');
+  if (modal) modal.hidden = true;
+  if (document.getElementById('patrolSearchModal') && !document.getElementById('patrolSearchModal').hidden) return;
+  document.body.classList.remove('modal-open');
+}
+
+function validatePatrolLookupBase() {
+  if (!validateAppsScriptUrl()) return false;
+  if (!validateOrganizationLoaded()) return false;
+  const basic = getPatrolBasicInfo();
+  if (!basic.storeName) {
+    setPatrolResult('error', '점검결과를 조회할 매장을 먼저 선택해주세요.');
+    const store = document.getElementById('patrolStoreSelect');
+    if (store && store.focus) store.focus();
+    return false;
+  }
+  if (!basic.employeeId) {
+    setPatrolResult('error', '현재 임명된 관리감독자를 먼저 선택해주세요.');
+    const card = document.getElementById('patrolAppointmentListCard');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+  return true;
+}
+
+
+let patrolPopupEscapeBound = false;
+function bindPatrolPopupEscapeOnce() {
+  if (patrolPopupEscapeBound) return;
+  patrolPopupEscapeBound = true;
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    closePatrolSearchModal();
+    closePatrolResultModal();
   });
 }
 
@@ -2958,28 +3114,13 @@ function makePatrolWeekInfoFromParts(year, month, weekNo) {
 
 async function loadPatrolResultForWeek(weekInfo, titlePrefix) {
   setPatrolResult('', '');
-  if (!validateAppsScriptUrl()) return;
-  if (!validateOrganizationLoaded()) return;
+  if (!validatePatrolLookupBase()) return;
   const basic = getPatrolBasicInfo();
-  if (!basic.storeName) {
-    setPatrolResult('error', '점검결과를 조회할 매장을 먼저 선택해주세요.');
-    const store = document.getElementById('patrolStoreSelect');
-    if (store && store.focus) store.focus();
-    return;
-  }
-  if (!basic.employeeId) {
-    setPatrolResult('error', '현재 임명된 관리감독자를 먼저 선택해주세요.');
-    const card = document.getElementById('patrolAppointmentListCard');
-    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    return;
-  }
-  const viewer = document.getElementById('patrolResultViewer');
   const body = document.getElementById('patrolResultViewerBody');
   const title = document.getElementById('patrolResultViewerTitle');
-  if (viewer) viewer.hidden = false;
+  openPatrolResultModal();
   if (title) title.textContent = titlePrefix + ' - ' + weekInfo.weekKey;
   if (body) body.innerHTML = '<div class="inline-message pending">점검결과를 불러오는 중입니다...</div>';
-  if (viewer) viewer.scrollIntoView({ behavior: 'smooth', block: 'start' });
   try {
     const data = await jsonpRequest({
       mode: 'patrolDetail',
@@ -3149,4 +3290,556 @@ function resetPatrolFormAfterSuccess() {
   populatePatrolHeadquarters();
   updatePatrolWeekInfo();
   setPatrolResult('', '');
+}
+/* ==============================
+   v33 화면 구조 리셋
+   - 첫 화면: 조직/관리감독자 선택
+   - 두 번째 화면: 업무 선택
+   - PC 사이드바 제거, 상단 메뉴 버튼 + 드로어 메뉴 사용
+   ============================== */
+var selectedGlobalContext = null;
+var globalAppointmentCandidate = null;
+var v33Bound = false;
+
+function initV19ModuleSwitch() {
+  const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
+  const showPatrolBtn = document.getElementById('showPatrolModuleBtn');
+  const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
+
+  if (!v33Bound) {
+    bindV33GlobalOrgSelectors();
+    bindV33Drawer();
+    const startBtn = document.getElementById('globalStartWorkBtn');
+    if (startBtn) startBtn.addEventListener('click', function () {
+      if (!selectedGlobalContext) return showSubmitModal({ type: 'error', title: '조직 선택 필요', html: '먼저 매장과 관리감독자를 선택해주세요.', confirmText: '확인' });
+      showWorkChoicePage();
+    });
+    const changeBtn = document.getElementById('changeGlobalOrgBtn');
+    if (changeBtn) changeBtn.addEventListener('click', showOrganizationSelectPage);
+    v33Bound = true;
+  }
+
+  if (showAppointmentBtn) showAppointmentBtn.addEventListener('click', function () { switchToAppointmentModule(); });
+  if (showPatrolBtn) showPatrolBtn.addEventListener('click', function () { switchToPatrolModule(); });
+  if (showEvaluationBtn) showEvaluationBtn.addEventListener('click', function () { switchToEvaluationModule(); });
+
+  document.querySelectorAll('[data-nav-module]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      const target = button.getAttribute('data-nav-module');
+      closeV33Drawer();
+      if (target === 'org') showOrganizationSelectPage();
+      if (target === 'home') showHomeModule();
+      if (target === 'appointment') switchToAppointmentModule();
+      if (target === 'patrol') switchToPatrolModule();
+      if (target === 'evaluation') switchToEvaluationModule();
+    });
+  });
+
+  hideAllBusinessModules();
+  showOrganizationSelectPage();
+  syncGlobalModuleNavigation('org');
+}
+
+function bindV33Drawer() {
+  const menuBtn = document.getElementById('topMenuBtn');
+  const closeBtn = document.getElementById('drawerCloseBtn');
+  const backdrop = document.getElementById('drawerBackdrop');
+  if (menuBtn) menuBtn.addEventListener('click', openV33Drawer);
+  if (closeBtn) closeBtn.addEventListener('click', closeV33Drawer);
+  if (backdrop) backdrop.addEventListener('click', closeV33Drawer);
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') closeV33Drawer();
+  });
+}
+
+function openV33Drawer() {
+  const drawer = document.getElementById('appDrawer');
+  const menuBtn = document.getElementById('topMenuBtn');
+  if (drawer) drawer.hidden = false;
+  if (menuBtn) menuBtn.setAttribute('aria-expanded', 'true');
+  document.body.classList.add('drawer-open');
+}
+
+function closeV33Drawer() {
+  const drawer = document.getElementById('appDrawer');
+  const menuBtn = document.getElementById('topMenuBtn');
+  if (drawer) drawer.hidden = true;
+  if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('drawer-open');
+}
+
+function bindV33GlobalOrgSelectors() {
+  const hq = document.getElementById('globalHeadquarterSelect');
+  const dept = document.getElementById('globalDepartmentSelect');
+  const team = document.getElementById('globalTeamSelect');
+  const store = document.getElementById('globalStoreSelect');
+  if (hq) hq.addEventListener('change', function () {
+    clearGlobalAppointmentSelection();
+    populateGlobalDepartments(hq.value);
+  });
+  if (dept) dept.addEventListener('change', function () {
+    clearGlobalAppointmentSelection();
+    populateGlobalTeams(hq.value, dept.value);
+  });
+  if (team) team.addEventListener('change', function () {
+    clearGlobalAppointmentSelection();
+    populateGlobalStores(hq.value, dept.value, team.value);
+  });
+  if (store) store.addEventListener('change', function () {
+    clearGlobalAppointmentSelection();
+    loadGlobalAppointmentsForSelectedStore();
+  });
+}
+
+function showOrganizationSelectPage() {
+  const orgPage = document.getElementById('orgSelectPage');
+  const workPage = document.getElementById('workSelectPage');
+  if (orgPage) orgPage.hidden = false;
+  if (workPage) workPage.hidden = true;
+  hideAllBusinessModules();
+  updateV33TopContext();
+  syncGlobalModuleNavigation('org');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showWorkChoicePage() {
+  if (!selectedGlobalContext) {
+    showOrganizationSelectPage();
+    return;
+  }
+  const orgPage = document.getElementById('orgSelectPage');
+  const workPage = document.getElementById('workSelectPage');
+  if (orgPage) orgPage.hidden = true;
+  if (workPage) workPage.hidden = false;
+  hideAllBusinessModules();
+  updateV33TopContext();
+  syncGlobalModuleNavigation('home');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showHomeModule() {
+  showWorkChoicePage();
+}
+
+function hideAllBusinessModules() {
+  ['appointmentModule', 'patrolModule', 'evaluationModule'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.hidden = true;
+  });
+}
+
+function requireGlobalContextBeforeModule() {
+  if (selectedGlobalContext) return true;
+  showSubmitModal({
+    type: 'error',
+    title: '조직 선택이 필요합니다',
+    html: '업무를 진행하기 전에 먼저 <strong>영업본부·부서·팀·매장·관리감독자</strong>를 선택해주세요.',
+    confirmText: '확인'
+  });
+  showOrganizationSelectPage();
+  return false;
+}
+
+function switchToAppointmentModule() {
+  if (!requireGlobalContextBeforeModule()) return;
+  const orgPage = document.getElementById('orgSelectPage');
+  const workPage = document.getElementById('workSelectPage');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const patrolModule = document.getElementById('patrolModule');
+  const evaluationModule = document.getElementById('evaluationModule');
+  if (orgPage) orgPage.hidden = true;
+  if (workPage) workPage.hidden = true;
+  if (appointmentModule) appointmentModule.hidden = false;
+  if (patrolModule) patrolModule.hidden = true;
+  if (evaluationModule) evaluationModule.hidden = true;
+  syncGlobalModuleNavigation('appointment');
+  applySelectedContextToModules();
+  renderModuleContextSummary('appointmentContextSummary', '선임/해임 신고');
+  ensureAppointmentStoreRow();
+  prefillFirstAppointmentStoreRow();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function switchToPatrolModule() {
+  if (!requireGlobalContextBeforeModule()) return;
+  const orgPage = document.getElementById('orgSelectPage');
+  const workPage = document.getElementById('workSelectPage');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const patrolModule = document.getElementById('patrolModule');
+  const evaluationModule = document.getElementById('evaluationModule');
+  if (orgPage) orgPage.hidden = true;
+  if (workPage) workPage.hidden = true;
+  if (appointmentModule) appointmentModule.hidden = true;
+  if (patrolModule) patrolModule.hidden = false;
+  if (evaluationModule) evaluationModule.hidden = true;
+  syncGlobalModuleNavigation('patrol');
+  applySelectedContextToModules();
+  renderModuleContextSummary('patrolContextSummary', '주간순회점검');
+  updatePatrolWeekInfo();
+  setTimeout(function () { resizePatrolSignatureCanvas(true); }, 120);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function switchToEvaluationModule() {
+  if (!requireGlobalContextBeforeModule()) return;
+  const orgPage = document.getElementById('orgSelectPage');
+  const workPage = document.getElementById('workSelectPage');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const patrolModule = document.getElementById('patrolModule');
+  const evaluationModule = document.getElementById('evaluationModule');
+  if (orgPage) orgPage.hidden = true;
+  if (workPage) workPage.hidden = true;
+  if (appointmentModule) appointmentModule.hidden = true;
+  if (patrolModule) patrolModule.hidden = true;
+  if (evaluationModule) evaluationModule.hidden = false;
+  syncGlobalModuleNavigation('evaluation');
+  applySelectedContextToModules();
+  renderModuleContextSummary('evaluationContextSummary', '반기평가');
+  showEntryPage(false);
+  updateSelectedInfoSummary();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function syncGlobalModuleNavigation(activeModule) {
+  document.querySelectorAll('[data-nav-module]').forEach(function (button) {
+    const isActive = button.getAttribute('data-nav-module') === activeModule;
+    button.classList.toggle('active', isActive);
+    if (isActive) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('.v33-work-row').forEach(function (button) { button.classList.remove('active'); });
+  const workId = activeModule === 'appointment' ? 'showAppointmentModuleBtn' : (activeModule === 'patrol' ? 'showPatrolModuleBtn' : (activeModule === 'evaluation' ? 'showEvaluationModuleBtn' : ''));
+  if (workId) {
+    const btn = document.getElementById(workId);
+    if (btn) btn.classList.add('active');
+  }
+  updateV33TopContext();
+}
+
+function loadOrganizationTree() {
+  if (!validateAppsScriptUrl(false)) {
+    setGlobalOrgMessage('error', 'Apps Script URL을 먼저 script.js에 입력해야 매장정보를 불러올 수 있습니다.');
+    setOrgMessage('error', 'Apps Script URL을 먼저 script.js에 입력해야 매장정보를 불러올 수 있습니다.');
+    showLoading(false);
+    return;
+  }
+  setGlobalOrgMessage('pending', '매장정보를 불러오는 중입니다...');
+  setOrgMessage('pending', '매장정보를 불러오는 중입니다...');
+  showLoading(true, '수도권영업본부·지방영업본부 기준 매장정보를 불러오는 중입니다. 잠시만 기다려주세요.', '매장정보를 불러오는 중입니다');
+  jsonpRequest({ mode: 'org' }, 30000)
+    .then(function (data) {
+      if (!data || !data.success) throw new Error(data && data.message ? data.message : '매장정보 불러오기 실패');
+      orgTree = data.tree || {};
+      populateGlobalHeadquarters();
+      populateHeadquarters();
+      populatePatrolHeadquarters();
+      refreshAppointmentRows();
+      const msg = '매장정보를 불러왔습니다. 총 ' + (data.count || 0) + '개 매장 기준입니다.';
+      setGlobalOrgMessage('success', msg);
+      setOrgMessage('success', msg);
+      showLoading(false);
+    })
+    .catch(function (error) {
+      console.error(error);
+      setGlobalOrgMessage('error', '매장정보를 불러오지 못했습니다. Apps Script 배포 권한과 조직도 시트를 확인해주세요.');
+      setOrgMessage('error', '매장정보를 불러오지 못했습니다. Apps Script 배포 권한과 조직도 시트를 확인해주세요.');
+      safeResetSelect(document.getElementById('globalHeadquarterSelect'), '매장정보 불러오기 실패', true);
+      safeResetSelect(document.getElementById('globalDepartmentSelect'), '영업본부를 먼저 선택해주세요', true);
+      safeResetSelect(document.getElementById('globalTeamSelect'), '부서명을 먼저 선택해주세요', true);
+      safeResetSelect(document.getElementById('globalStoreSelect'), '팀명을 먼저 선택해주세요', true);
+      if (headquarterSelect) resetSelect(headquarterSelect, '매장정보 불러오기 실패', true);
+      if (departmentSelect) resetSelect(departmentSelect, '영업본부를 먼저 선택해주세요', true);
+      if (teamSelect) resetSelect(teamSelect, '부서명을 먼저 선택해주세요', true);
+      if (storeSelect) resetSelect(storeSelect, '팀명을 먼저 선택해주세요', true);
+      showLoading(false);
+    });
+}
+
+function populateGlobalHeadquarters() {
+  const hq = document.getElementById('globalHeadquarterSelect');
+  const dept = document.getElementById('globalDepartmentSelect');
+  const team = document.getElementById('globalTeamSelect');
+  const store = document.getElementById('globalStoreSelect');
+  const headquarters = Object.keys(orgTree || {}).sort(koreanSort);
+  safeFillSelect(hq, headquarters, '영업본부를 선택해주세요', headquarters.length === 0);
+  safeResetSelect(dept, '영업본부를 먼저 선택해주세요', true);
+  safeResetSelect(team, '부서명을 먼저 선택해주세요', true);
+  safeResetSelect(store, '팀명을 먼저 선택해주세요', true);
+}
+
+function populateGlobalDepartments(headquarter) {
+  const dept = document.getElementById('globalDepartmentSelect');
+  const team = document.getElementById('globalTeamSelect');
+  const store = document.getElementById('globalStoreSelect');
+  const departments = headquarter && orgTree[headquarter] ? Object.keys(orgTree[headquarter]).sort(koreanSort) : [];
+  safeFillSelect(dept, departments, '부서명을 선택해주세요', departments.length === 0);
+  safeResetSelect(team, '부서명을 먼저 선택해주세요', true);
+  safeResetSelect(store, '팀명을 먼저 선택해주세요', true);
+}
+
+function populateGlobalTeams(headquarter, department) {
+  const team = document.getElementById('globalTeamSelect');
+  const store = document.getElementById('globalStoreSelect');
+  const teams = headquarter && department && orgTree[headquarter] && orgTree[headquarter][department]
+    ? Object.keys(orgTree[headquarter][department]).sort(koreanSort)
+    : [];
+  safeFillSelect(team, teams, '팀명을 선택해주세요', teams.length === 0);
+  safeResetSelect(store, '팀명을 먼저 선택해주세요', true);
+}
+
+function populateGlobalStores(headquarter, department, team) {
+  const store = document.getElementById('globalStoreSelect');
+  const stores = headquarter && department && team && orgTree[headquarter] && orgTree[headquarter][department] && orgTree[headquarter][department][team]
+    ? orgTree[headquarter][department][team].slice().sort(koreanSort)
+    : [];
+  safeFillSelect(store, stores, '매장명을 선택해주세요', stores.length === 0);
+}
+
+function safeFillSelect(select, options, placeholder, disabled) {
+  if (!select) return;
+  select.innerHTML = '';
+  const first = document.createElement('option');
+  first.value = '';
+  first.textContent = placeholder || '선택';
+  select.appendChild(first);
+  (options || []).forEach(function (value) {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = value;
+    select.appendChild(opt);
+  });
+  select.disabled = !!disabled;
+}
+
+function safeResetSelect(select, placeholder, disabled) {
+  safeFillSelect(select, [], placeholder, disabled);
+}
+
+function setGlobalOrgMessage(type, message) {
+  const el = document.getElementById('globalOrgLoadMessage');
+  if (!el) return;
+  el.className = 'inline-message ' + type;
+  el.textContent = message;
+}
+
+async function loadGlobalAppointmentsForSelectedStore() {
+  const hq = document.getElementById('globalHeadquarterSelect');
+  const dept = document.getElementById('globalDepartmentSelect');
+  const team = document.getElementById('globalTeamSelect');
+  const store = document.getElementById('globalStoreSelect');
+  const card = document.getElementById('globalAppointmentCard');
+  const list = document.getElementById('globalAppointmentList');
+  const status = document.getElementById('globalAppointmentStatus');
+  const startBtn = document.getElementById('globalStartWorkBtn');
+  if (startBtn) startBtn.disabled = true;
+  selectedGlobalContext = null;
+  globalAppointmentCandidate = null;
+  updateV33TopContext();
+  if (!card || !list || !status || !store || !store.value) {
+    if (card) card.hidden = true;
+    return;
+  }
+
+  card.hidden = false;
+  status.textContent = '임명 정보를 확인 중입니다...';
+  list.innerHTML = '<div class="appointed-empty">현재 임명된 관리감독자 정보를 불러오는 중입니다.</div>';
+
+  try {
+    const data = await jsonpRequest({ mode: 'appointmentList', storeName: store.value }, 20000);
+    if (!data || data.success === false) throw new Error(data && data.message ? data.message : '임명자 조회 실패');
+    renderGlobalAppointmentList(data.appointments || [], {
+      headquarter: hq ? hq.value : '',
+      department: dept ? dept.value : '',
+      team: team ? team.value : '',
+      storeName: store.value
+    });
+  } catch (err) {
+    status.textContent = '조회 실패';
+    list.innerHTML = '<div class="appointed-empty">임명 정보를 불러오지 못했습니다.<br>잠시 후 다시 시도하거나 안전보건팀에 문의해주세요.</div>';
+  }
+}
+
+function renderGlobalAppointmentList(appointments, org) {
+  const list = document.getElementById('globalAppointmentList');
+  const status = document.getElementById('globalAppointmentStatus');
+  if (!list || !status) return;
+  list.innerHTML = '';
+  if (!appointments.length) {
+    status.textContent = '임명 정보 없음';
+    list.innerHTML = '<div class="appointed-empty">해당 매장의 관리감독자 임명 정보가 확인되지 않습니다.<br>선임/해임 신고를 먼저 진행해주세요.</div>';
+    clearGlobalAppointmentSelection(false);
+    return;
+  }
+  status.textContent = appointments.length + '명 확인됨';
+  appointments.forEach(function (ap) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'appointed-person-btn';
+    btn.innerHTML = '<div><strong>' + escapeHtml(ap.supervisorName || '') + '</strong>' +
+      '<span>' + escapeHtml(ap.employeeId || '') + ' · 선임일 ' + escapeHtml(formatAppointmentDateText(ap.appliedAt || '')) + '</span></div>' +
+      '<em class="select-chip">선택</em>';
+    btn.addEventListener('click', function () { selectGlobalAppointment(org, ap, btn); });
+    list.appendChild(btn);
+  });
+}
+
+function selectGlobalAppointment(org, ap, button) {
+  document.querySelectorAll('#globalAppointmentList .appointed-person-btn').forEach(function (el) { el.classList.remove('selected'); });
+  if (button) button.classList.add('selected');
+  globalAppointmentCandidate = ap || null;
+  selectedGlobalContext = {
+    headquarter: org.headquarter || '',
+    department: org.department || '',
+    team: org.team || '',
+    storeName: org.storeName || '',
+    supervisorName: ap && ap.supervisorName ? ap.supervisorName : '',
+    employeeId: ap && ap.employeeId ? ap.employeeId : '',
+    appointment: ap || null
+  };
+  const status = document.getElementById('globalAppointmentStatus');
+  const startBtn = document.getElementById('globalStartWorkBtn');
+  if (status) status.textContent = '관리감독자 선택 완료';
+  if (startBtn) startBtn.disabled = false;
+  applySelectedContextToModules();
+  updateV33TopContext();
+}
+
+function clearGlobalAppointmentSelection(clearList) {
+  globalAppointmentCandidate = null;
+  selectedGlobalContext = null;
+  const startBtn = document.getElementById('globalStartWorkBtn');
+  if (startBtn) startBtn.disabled = true;
+  document.querySelectorAll('#globalAppointmentList .appointed-person-btn').forEach(function (el) { el.classList.remove('selected'); });
+  if (clearList !== false) {
+    const list = document.getElementById('globalAppointmentList');
+    const card = document.getElementById('globalAppointmentCard');
+    const status = document.getElementById('globalAppointmentStatus');
+    if (list) list.innerHTML = '';
+    if (status) status.textContent = '매장을 선택하면 임명 정보를 확인합니다.';
+    if (card) card.hidden = true;
+  }
+}
+
+function updateV33TopContext() {
+  const summary = selectedGlobalContext ? formatSelectedContext(selectedGlobalContext) : '조직 선택 전입니다.';
+  const topbar = document.getElementById('topbarContextText');
+  const drawer = document.getElementById('drawerContextText');
+  const globalSummary = document.getElementById('globalSelectedSummary');
+  if (topbar) topbar.textContent = selectedGlobalContext ? summary : '먼저 조직을 선택해주세요';
+  if (drawer) drawer.textContent = summary;
+  if (globalSummary) globalSummary.textContent = selectedGlobalContext ? summary : '조직을 먼저 선택해주세요.';
+}
+
+function formatSelectedContext(ctx) {
+  if (!ctx) return '';
+  return [ctx.headquarter, ctx.department, ctx.team, ctx.storeName, ctx.supervisorName, ctx.employeeId]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+function renderModuleContextSummary(targetId, title) {
+  const el = document.getElementById(targetId);
+  if (!el || !selectedGlobalContext) return;
+  el.innerHTML = '<div class="v33-module-context-row">' +
+    '<div><span class="selected-info-label">' + escapeHtml(title) + '</span><strong>' + escapeHtml(formatSelectedContext(selectedGlobalContext)) + '</strong></div>' +
+    '<button type="button" class="sub-btn small-btn" data-v33-change-org>조직 다시 선택</button>' +
+    '</div>';
+  const btn = el.querySelector('[data-v33-change-org]');
+  if (btn) btn.addEventListener('click', showOrganizationSelectPage);
+}
+
+function applySelectedContextToModules() {
+  if (!selectedGlobalContext) return;
+  applySelectedContextToEvaluation();
+  applySelectedContextToPatrol();
+}
+
+function applySelectedContextToEvaluation() {
+  const ctx = selectedGlobalContext;
+  if (!ctx) return;
+  populateHeadquarters();
+  setSelectValue(headquarterSelect, ctx.headquarter);
+  populateDepartments(ctx.headquarter);
+  setSelectValue(departmentSelect, ctx.department);
+  populateTeams(ctx.headquarter, ctx.department);
+  setSelectValue(teamSelect, ctx.team);
+  populateStores(ctx.headquarter, ctx.department, ctx.team);
+  setSelectValue(storeSelect, ctx.storeName);
+  selectedAppointmentForEvaluation = ctx.appointment || { supervisorName: ctx.supervisorName, employeeId: ctx.employeeId };
+  const nameInput = form && form.elements ? form.elements.supervisorName : null;
+  if (nameInput) nameInput.value = ctx.supervisorName || '';
+  const empId = String(ctx.employeeId || '').toUpperCase();
+  const digits = empId.replace(/^AD/i, '').replace(/\D/g, '');
+  if (employeeIdInput) employeeIdInput.value = digits;
+  if (employeeIdFull) employeeIdFull.value = digits ? 'AD' + digits : empId;
+  updateSelectedInfoSummary();
+}
+
+function applySelectedContextToPatrol() {
+  const ctx = selectedGlobalContext;
+  if (!ctx) return;
+  populatePatrolHeadquarters();
+  const hq = document.getElementById('patrolHeadquarterSelect');
+  const dept = document.getElementById('patrolDepartmentSelect');
+  const team = document.getElementById('patrolTeamSelect');
+  const store = document.getElementById('patrolStoreSelect');
+  setSelectValue(hq, ctx.headquarter);
+  populatePatrolDepartments(ctx.headquarter);
+  setSelectValue(dept, ctx.department);
+  populatePatrolTeams(ctx.headquarter, ctx.department);
+  setSelectValue(team, ctx.team);
+  populatePatrolStores(ctx.headquarter, ctx.department, ctx.team);
+  setSelectValue(store, ctx.storeName);
+  patrolSelectedAppointment = ctx.appointment || { supervisorName: ctx.supervisorName, employeeId: ctx.employeeId };
+  const nameInput = document.getElementById('patrolSupervisorNameInput');
+  const empInput = document.getElementById('patrolEmployeeIdInput');
+  const empFull = document.getElementById('patrolEmployeeIdFull');
+  if (nameInput) nameInput.value = ctx.supervisorName || '';
+  const empId = String(ctx.employeeId || '').toUpperCase();
+  const digits = empId.replace(/^AD/i, '').replace(/\D/g, '');
+  if (empInput) empInput.value = digits;
+  if (empFull) empFull.value = digits ? 'AD' + digits : empId;
+  const card = document.getElementById('patrolAppointmentListCard');
+  const status = document.getElementById('patrolAppointmentListStatus');
+  if (card) card.hidden = true;
+  if (status) status.textContent = '첫 화면에서 선택한 관리감독자가 자동 반영되었습니다.';
+}
+
+function setSelectValue(select, value) {
+  if (!select) return;
+  const exists = Array.from(select.options || []).some(function (opt) { return opt.value === value; });
+  if (!exists && value) {
+    const opt = document.createElement('option');
+    opt.value = value;
+    opt.textContent = value;
+    select.appendChild(opt);
+  }
+  select.value = value || '';
+  select.disabled = false;
+}
+
+function prefillFirstAppointmentStoreRow() {
+  if (!selectedGlobalContext) return;
+  const rows = document.querySelectorAll('.appointment-store-card');
+  if (!rows.length) return;
+  const first = rows[0];
+  const hq = first.querySelector('[data-appt="headquarter"]');
+  const dept = first.querySelector('[data-appt="department"]');
+  const team = first.querySelector('[data-appt="team"]');
+  const store = first.querySelector('[data-appt="storeName"]');
+  fillAppointmentSelect(hq, Object.keys(orgTree || {}).sort(koreanSort), '매장구분 선택', !Object.keys(orgTree || {}).length);
+  setSelectValue(hq, selectedGlobalContext.headquarter);
+  const depts = selectedGlobalContext.headquarter && orgTree[selectedGlobalContext.headquarter] ? Object.keys(orgTree[selectedGlobalContext.headquarter]).sort(koreanSort) : [];
+  fillAppointmentSelect(dept, depts, '부서명 선택', depts.length === 0);
+  setSelectValue(dept, selectedGlobalContext.department);
+  const teams = selectedGlobalContext.headquarter && selectedGlobalContext.department && orgTree[selectedGlobalContext.headquarter] && orgTree[selectedGlobalContext.headquarter][selectedGlobalContext.department]
+    ? Object.keys(orgTree[selectedGlobalContext.headquarter][selectedGlobalContext.department]).sort(koreanSort)
+    : [];
+  fillAppointmentSelect(team, teams, '팀명 선택', teams.length === 0);
+  setSelectValue(team, selectedGlobalContext.team);
+  const stores = selectedGlobalContext.headquarter && selectedGlobalContext.department && selectedGlobalContext.team && orgTree[selectedGlobalContext.headquarter] && orgTree[selectedGlobalContext.headquarter][selectedGlobalContext.department] && orgTree[selectedGlobalContext.headquarter][selectedGlobalContext.department][selectedGlobalContext.team]
+    ? orgTree[selectedGlobalContext.headquarter][selectedGlobalContext.department][selectedGlobalContext.team].slice().sort(koreanSort)
+    : [];
+  fillAppointmentSelect(store, stores, '매장명 선택', stores.length === 0);
+  setSelectValue(store, selectedGlobalContext.storeName);
 }
