@@ -4096,3 +4096,188 @@ body.drawer-open { overflow: hidden; }
     bottom: calc(78px + env(safe-area-inset-bottom)) !important;
   }
 }
+
+
+/* =========================================================
+   v34 화면 단순화 / 조직 선택 흐름 개선
+   - 장문 안내 카드 숨김
+   - 반기평가 진입 즉시 평가 화면 표시
+   - 선임/해임 탭 디자인
+   ========================================================= */
+body.v34-minimal #appointmentModule > .notice.guide-card,
+body.v34-minimal #patrolModule > .notice.guide-card,
+body.v34-minimal #noticeCard {
+  display: none !important;
+}
+body.v34-minimal .v33-page-head .section-guide,
+body.v34-minimal .v33-work-select .section-guide {
+  max-width: 720px;
+}
+body.v34-minimal .v33-context-module {
+  display: grid;
+  gap: 14px;
+}
+body.v34-minimal .v33-context-module[hidden] {
+  display: none !important;
+}
+body.v34-minimal .v33-module-context {
+  margin-bottom: 0;
+  padding: 18px 20px;
+}
+body.v34-minimal #evaluationModule #basicInfoSection,
+body.v34-minimal #evaluationModule #startEvaluationBtn,
+body.v34-minimal #evaluationModule .entry-help {
+  display: none !important;
+}
+body.v34-minimal #evaluationModule .evaluation-page {
+  display: block;
+}
+body.v34-minimal #evaluationModule .evaluation-page[hidden] {
+  display: none !important;
+}
+.v34-login-empty-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.v34-login-empty-actions .start-btn,
+.v34-login-empty-actions .sub-btn {
+  width: 100%;
+}
+.v34-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.v34-mode-tab {
+  min-height: 58px;
+  border: 1px solid var(--gray-200);
+  border-radius: 20px;
+  background: #fff;
+  color: var(--navy);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 1000;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(13,27,54,.05);
+}
+.v34-mode-tab.active {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.v34-mode-tab:active { transform: scale(.99); }
+.v34-appoint-pane[hidden],
+.v34-deappoint-pane[hidden] {
+  display: none !important;
+}
+.v34-deappoint-pane {
+  padding: 22px;
+}
+.v34-deappoint-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.v34-deappoint-head h2 {
+  margin: 0 0 6px;
+  color: var(--navy);
+  font-size: 22px;
+  letter-spacing: -0.04em;
+}
+.v34-deappoint-head p {
+  margin: 0;
+  color: var(--gray-500);
+  line-height: 1.55;
+  word-break: keep-all;
+}
+.v34-current-person-card {
+  border: 1px solid var(--gray-200);
+  background: #fff;
+  border-radius: 22px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+.v34-current-person-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+}
+.v34-current-person-main strong {
+  color: var(--navy);
+  font-size: 18px;
+}
+.v34-current-person-main span {
+  display: block;
+  margin-top: 4px;
+  color: var(--gray-500);
+  font-size: 14px;
+}
+.v34-danger-btn {
+  background: #fff;
+  color: var(--red);
+  border: 1px solid #fecdd3;
+  border-radius: 18px;
+  min-height: 52px;
+  font-family: inherit;
+  font-weight: 1000;
+  cursor: pointer;
+}
+.v34-danger-btn.primary {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+.v34-info-note {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  color: var(--gray-500);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.v34-no-appointment-box {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px dashed #fecaca;
+  background: #fff7f7;
+  color: #991b1b;
+  line-height: 1.55;
+  font-weight: 800;
+}
+body.v34-minimal #appointmentForm .basic-info-section .section-guide,
+body.v34-minimal #appointmentForm .appointment-store-section .section-guide,
+body.v34-minimal #patrolForm .basic-info-section,
+body.v34-minimal #patrolForm .patrol-week-section .section-guide,
+body.v34-minimal #patrolForm .patrol-items-section .section-guide {
+  color: var(--gray-500);
+}
+/* 첫 조직 선택 화면에서 임명 정보 없을 때 버튼이 잘 보이게 */
+.v34-appointment-required-btn {
+  width: 100%;
+  min-height: 54px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--red);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 1000;
+  font-size: 16px;
+  cursor: pointer;
+}
+@media (max-width: 720px) {
+  .v34-mode-tabs { grid-template-columns: 1fr; }
+  .v34-deappoint-head { display: block; }
+  .v34-current-person-main { display: block; }
+  .v34-current-person-main .v34-danger-btn { width: 100%; margin-top: 12px; }
+}

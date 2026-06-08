@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxEiXYMsxIKR5nf7YhUvgTXXU_pGCvUSDNwvEed5ncNMkPRcqNktuPfEiBjDlwOetk4/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const IMAGE_COMPRESSION_CONFIG = {
   targetDataUrlLength: 260000,
   maxDataUrlLength: 360000,
@@ -3843,3 +3843,335 @@ function prefillFirstAppointmentStoreRow() {
   fillAppointmentSelect(store, stores, '매장명 선택', stores.length === 0);
   setSelectValue(store, selectedGlobalContext.storeName);
 }
+
+
+/* =========================================================
+   v34 UX Fix Pack
+   - 장문 안내 카드 제거
+   - 첫 로그인에서 임명 정보 없을 때 선임/해임 화면으로 이동 가능
+   - 반기평가 중간 시작버튼 제거, 바로 평가 작성 화면 표시
+   - 선임/해임 신고 화면을 선임/해임 탭으로 분리
+   ========================================================= */
+(function () {
+  let v34Started = false;
+
+  function $(id) { return document.getElementById(id); }
+
+  window.addEventListener('DOMContentLoaded', function () {
+    document.body.classList.add('v34-minimal');
+    setTimeout(initV34Fixes, 0);
+    setTimeout(initV34Fixes, 400);
+  });
+
+  function initV34Fixes() {
+    if (v34Started) return;
+    v34Started = true;
+    simplifyV34StaticCards();
+    replaceGlobalStartButton();
+    installAppointmentModeTabs();
+    patchAppointmentFormDefaults();
+  }
+
+  function simplifyV34StaticCards() {
+    const idsToHide = ['noticeCard'];
+    idsToHide.forEach(function (id) { const el = $(id); if (el) el.hidden = true; });
+    document.querySelectorAll('#appointmentModule > .notice.guide-card, #patrolModule > .notice.guide-card').forEach(function (el) {
+      el.hidden = true;
+    });
+  }
+
+  function replaceGlobalStartButton() {
+    const oldBtn = $('globalStartWorkBtn');
+    if (!oldBtn || oldBtn.dataset.v34Replaced === '1') return;
+    const newBtn = oldBtn.cloneNode(true);
+    newBtn.dataset.v34Replaced = '1';
+    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+    newBtn.addEventListener('click', function () {
+      if (!selectedGlobalContext) {
+        showSubmitModal({ type: 'error', title: '조직 선택 필요', html: '먼저 매장을 선택해주세요.', confirmText: '확인' });
+        return;
+      }
+      if (selectedGlobalContext.needsAppointment) {
+        switchToAppointmentModule();
+        return;
+      }
+      showWorkChoicePage();
+    });
+  }
+
+  function installAppointmentModeTabs() {
+    const module = $('appointmentModule');
+    const formEl = $('appointmentForm');
+    if (!module || !formEl || $('v34AppointmentModeTabs')) return;
+
+    const tabs = document.createElement('div');
+    tabs.id = 'v34AppointmentModeTabs';
+    tabs.className = 'v34-mode-tabs no-print';
+    tabs.innerHTML = '<button type="button" class="v34-mode-tab active" data-v34-appt-mode="appoint">선임하기</button>' +
+      '<button type="button" class="v34-mode-tab" data-v34-appt-mode="deappoint">해임하기</button>';
+    module.insertBefore(tabs, formEl);
+    formEl.classList.add('v34-appoint-pane');
+
+    const deappoint = document.createElement('section');
+    deappoint.id = 'v34DeappointPane';
+    deappoint.className = 'card v34-deappoint-pane';
+    deappoint.hidden = true;
+    deappoint.innerHTML = renderDeappointmentPaneHtml();
+    formEl.insertAdjacentElement('afterend', deappoint);
+
+    tabs.querySelectorAll('[data-v34-appt-mode]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setAppointmentMode(btn.getAttribute('data-v34-appt-mode'));
+      });
+    });
+
+    const deBtn = $('v34DeappointSubmitBtn');
+    if (deBtn) deBtn.addEventListener('click', handleV34DeappointmentSubmit);
+  }
+
+  function renderDeappointmentPaneHtml() {
+    const ctx = selectedGlobalContext || {};
+    const hasPerson = !!(ctx.supervisorName && ctx.employeeId);
+    if (!hasPerson) {
+      return '<div class="v34-deappoint-head"><div><h2>관리감독자 해임</h2><p>현재 선택한 매장에 임명된 관리감독자가 없습니다.</p></div></div>' +
+        '<div class="v34-no-appointment-box">해임할 대상이 없습니다. 신규 선임이 필요한 경우 상단의 <strong>선임하기</strong>를 선택해주세요.</div>';
+    }
+    return '<div class="v34-deappoint-head"><div><h2>관리감독자 해임</h2><p>첫 화면에서 선택한 관리감독자를 해임 처리합니다. 해임 후에는 신규 선임을 진행할 수 있습니다.</p></div></div>' +
+      '<div class="v34-current-person-card">' +
+      '<div class="v34-current-person-main"><div><strong>' + escapeHtml(ctx.supervisorName || '') + '</strong><span>' + escapeHtml(ctx.employeeId || '') + ' · ' + escapeHtml(ctx.storeName || '') + '</span></div><button type="button" class="v34-danger-btn primary" id="v34DeappointSubmitBtn">해임 신고하기</button></div>' +
+      '<div class="v34-info-note">해임 신고는 구글시트 designation_log에 기록됩니다. 해임 후 반기평가·순회점검은 신규 선임 후 진행해주세요.</div>' +
+      '</div>';
+  }
+
+  function refreshDeappointmentPane() {
+    const pane = $('v34DeappointPane');
+    if (!pane) return;
+    pane.innerHTML = renderDeappointmentPaneHtml();
+    const deBtn = $('v34DeappointSubmitBtn');
+    if (deBtn) deBtn.addEventListener('click', handleV34DeappointmentSubmit);
+  }
+
+  function setAppointmentMode(mode) {
+    const formEl = $('appointmentForm');
+    const pane = $('v34DeappointPane');
+    document.querySelectorAll('[data-v34-appt-mode]').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-v34-appt-mode') === mode);
+    });
+    if (formEl) formEl.hidden = mode !== 'appoint';
+    if (pane) pane.hidden = mode !== 'deappoint';
+    if (mode === 'appoint') patchAppointmentFormDefaults();
+    if (mode === 'deappoint') refreshDeappointmentPane();
+  }
+
+  function patchAppointmentFormDefaults() {
+    if (!selectedGlobalContext) return;
+    const nameInput = $('appointmentName');
+    const empInput = $('appointmentEmployeeIdInput');
+    const empFull = $('appointmentEmployeeIdFull');
+    if (selectedGlobalContext.supervisorName && nameInput && !nameInput.value) nameInput.value = selectedGlobalContext.supervisorName;
+    if (selectedGlobalContext.employeeId && empInput && !empInput.value) {
+      const digits = String(selectedGlobalContext.employeeId || '').replace(/^AD/i, '').replace(/\D/g, '');
+      empInput.value = digits;
+      if (empFull) empFull.value = digits ? 'AD' + digits : '';
+    }
+    ensureAppointmentStoreRow();
+    prefillFirstAppointmentStoreRow();
+  }
+
+  // 기존 v33 함수 재정의: 임명자가 없는 매장도 선임/해임 화면으로 이동할 수 있게 처리
+  window.renderGlobalAppointmentList = function (appointments, org) {
+    const list = $('globalAppointmentList');
+    const status = $('globalAppointmentStatus');
+    const startBtn = $('globalStartWorkBtn');
+    if (!list || !status) return;
+    list.innerHTML = '';
+    if (!appointments.length) {
+      status.textContent = '임명 정보 없음';
+      selectedGlobalContext = {
+        headquarter: org.headquarter || '',
+        department: org.department || '',
+        team: org.team || '',
+        storeName: org.storeName || '',
+        supervisorName: '',
+        employeeId: '',
+        appointment: null,
+        needsAppointment: true
+      };
+      list.innerHTML = '<div class="appointed-empty">해당 매장의 관리감독자 임명 정보가 확인되지 않습니다.<br>먼저 선임/해임 신고에서 관리감독자를 선임해주세요.</div>' +
+        '<div class="v34-login-empty-actions"><button type="button" class="v34-appointment-required-btn" id="v34GoAppointmentFromLoginBtn">선임/해임 신고로 이동</button></div>';
+      if (startBtn) {
+        startBtn.disabled = false;
+        startBtn.textContent = '선임/해임 신고로 이동';
+      }
+      const goBtn = $('v34GoAppointmentFromLoginBtn');
+      if (goBtn) goBtn.addEventListener('click', switchToAppointmentModule);
+      applySelectedContextToModules();
+      updateV33TopContext();
+      return;
+    }
+    if (startBtn) startBtn.textContent = '선택 완료 후 업무 선택하기';
+    status.textContent = appointments.length + '명 확인됨';
+    appointments.forEach(function (ap) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'appointed-person-btn';
+      btn.innerHTML = '<div><strong>' + escapeHtml(ap.supervisorName || '') + '</strong>' +
+        '<span>' + escapeHtml(ap.employeeId || '') + ' · 선임일 ' + escapeHtml(formatAppointmentDateText(ap.appliedAt || '')) + '</span></div>' +
+        '<em class="select-chip">선택</em>';
+      btn.addEventListener('click', function () { selectGlobalAppointment(org, ap, btn); });
+      list.appendChild(btn);
+    });
+  };
+
+  // 기존 v33 함수 재정의: 임명자 없는 경우에도 선임/해임 화면은 진입 허용, 그 외 업무는 막음
+  window.requireGlobalContextBeforeModule = function () {
+    if (!selectedGlobalContext) {
+      showSubmitModal({
+        type: 'error',
+        title: '조직 선택이 필요합니다',
+        html: '업무를 진행하기 전에 먼저 <strong>영업본부·부서·팀·매장</strong>을 선택해주세요.',
+        confirmText: '확인'
+      });
+      showOrganizationSelectPage();
+      return false;
+    }
+    return true;
+  };
+
+  window.switchToAppointmentModule = function () {
+    if (!selectedGlobalContext) {
+      showSubmitModal({ type: 'error', title: '조직 선택 필요', html: '먼저 매장을 선택해주세요.', confirmText: '확인' });
+      showOrganizationSelectPage();
+      return;
+    }
+    const orgPage = $('orgSelectPage');
+    const workPage = $('workSelectPage');
+    const appointmentModule = $('appointmentModule');
+    const patrolModule = $('patrolModule');
+    const evaluationModule = $('evaluationModule');
+    if (orgPage) orgPage.hidden = true;
+    if (workPage) workPage.hidden = true;
+    if (appointmentModule) appointmentModule.hidden = false;
+    if (patrolModule) patrolModule.hidden = true;
+    if (evaluationModule) evaluationModule.hidden = true;
+    syncGlobalModuleNavigation('appointment');
+    applySelectedContextToModules();
+    renderModuleContextSummary('appointmentContextSummary', '선임/해임 신고');
+    simplifyV34StaticCards();
+    installAppointmentModeTabs();
+    patchAppointmentFormDefaults();
+    setAppointmentMode('appoint');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  window.switchToPatrolModule = function () {
+    if (!requireGlobalContextBeforeModule()) return;
+    if (selectedGlobalContext.needsAppointment) {
+      showSubmitModal({ type: 'error', title: '관리감독자 선임 필요', html: '주간순회점검은 관리감독자 선임 후 진행할 수 있습니다.<br><br>먼저 <strong>선임/해임 신고</strong>에서 관리감독자를 선임해주세요.', confirmText: '선임/해임으로 이동' })
+        .then(function () { switchToAppointmentModule(); });
+      return;
+    }
+    const orgPage = $('orgSelectPage');
+    const workPage = $('workSelectPage');
+    const appointmentModule = $('appointmentModule');
+    const patrolModule = $('patrolModule');
+    const evaluationModule = $('evaluationModule');
+    if (orgPage) orgPage.hidden = true;
+    if (workPage) workPage.hidden = true;
+    if (appointmentModule) appointmentModule.hidden = true;
+    if (patrolModule) patrolModule.hidden = false;
+    if (evaluationModule) evaluationModule.hidden = true;
+    syncGlobalModuleNavigation('patrol');
+    applySelectedContextToModules();
+    renderModuleContextSummary('patrolContextSummary', '주간순회점검');
+    simplifyV34StaticCards();
+    updatePatrolWeekInfo();
+    setTimeout(function () { resizePatrolSignatureCanvas(true); }, 120);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  window.switchToEvaluationModule = function () {
+    if (!requireGlobalContextBeforeModule()) return;
+    if (selectedGlobalContext.needsAppointment) {
+      showSubmitModal({ type: 'error', title: '관리감독자 선임 필요', html: '반기평가는 관리감독자 선임 등록 후 진행할 수 있습니다.<br><br>먼저 <strong>선임/해임 신고</strong>에서 관리감독자를 선임해주세요.', confirmText: '선임/해임으로 이동' })
+        .then(function () { switchToAppointmentModule(); });
+      return;
+    }
+    const orgPage = $('orgSelectPage');
+    const workPage = $('workSelectPage');
+    const appointmentModule = $('appointmentModule');
+    const patrolModule = $('patrolModule');
+    const evaluationModule = $('evaluationModule');
+    if (orgPage) orgPage.hidden = true;
+    if (workPage) workPage.hidden = true;
+    if (appointmentModule) appointmentModule.hidden = true;
+    if (patrolModule) patrolModule.hidden = true;
+    if (evaluationModule) evaluationModule.hidden = false;
+    syncGlobalModuleNavigation('evaluation');
+    applySelectedContextToModules();
+    renderModuleContextSummary('evaluationContextSummary', '반기평가');
+    simplifyV34StaticCards();
+    // 조직 선택은 이미 끝났으므로 반기평가를 바로 표시
+    updateSelectedInfoSummary();
+    if (pageRoot) pageRoot.classList.add('evaluation-mode');
+    if (noticeCard) noticeCard.hidden = true;
+    if (basicInfoSection) basicInfoSection.hidden = true;
+    if (evaluationPage) evaluationPage.hidden = false;
+    setTimeout(function () { resizeSignatureCanvas(true); }, 120);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  async function handleV34DeappointmentSubmit() {
+    if (!selectedGlobalContext || !selectedGlobalContext.supervisorName || !selectedGlobalContext.employeeId) {
+      await showSubmitModal({ type: 'error', title: '해임 대상 없음', html: '현재 선택한 매장에 해임할 관리감독자가 없습니다.', confirmText: '확인' });
+      return;
+    }
+    if (!validateAppsScriptUrl()) return;
+    const ok = await showSubmitModal({
+      type: 'confirm',
+      title: '해임 신고 확인',
+      html: '<div class="modal-info-box">' +
+        '<div><b>매장명</b><span>' + escapeHtml(selectedGlobalContext.storeName || '') + '</span></div>' +
+        '<div><b>성명</b><span>' + escapeHtml(selectedGlobalContext.supervisorName || '') + '</span></div>' +
+        '<div><b>사번</b><span>' + escapeHtml(selectedGlobalContext.employeeId || '') + '</span></div>' +
+        '</div><p class="modal-small-text">해임 후에는 신규 선임 전까지 반기평가와 순회점검을 진행할 수 없습니다.</p>',
+      confirmText: '해임 신고',
+      cancelText: '취소'
+    });
+    if (!ok) return;
+    const submissionId = 'DA-' + new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14) + '-' + Math.random().toString(36).slice(2, 8);
+    const payload = {
+      type: 'deappointment',
+      submissionId: submissionId,
+      person: { name: selectedGlobalContext.supervisorName, employeeId: selectedGlobalContext.employeeId },
+      store: {
+        headquarter: selectedGlobalContext.headquarter,
+        department: selectedGlobalContext.department,
+        team: selectedGlobalContext.team,
+        storeName: selectedGlobalContext.storeName
+      },
+      userAgent: navigator.userAgent || ''
+    };
+    try {
+      showLoading(true, '해임 신고를 저장 중입니다.', '해임 신고 중');
+      await postPayloadByHiddenForm(payload);
+      const status = await waitForAppointmentStatus(submissionId);
+      showLoading(false);
+      if (status && status.success) {
+        await showSubmitModal({ type: 'success', title: '해임 신고 완료', html: '해임 내역이 저장되었습니다.<br>필요 시 선임하기 탭에서 신규 관리감독자를 선임해주세요.', confirmText: '확인' });
+        selectedGlobalContext.supervisorName = '';
+        selectedGlobalContext.employeeId = '';
+        selectedGlobalContext.appointment = null;
+        selectedGlobalContext.needsAppointment = true;
+        updateV33TopContext();
+        refreshDeappointmentPane();
+        setAppointmentMode('appoint');
+      } else {
+        throw new Error(status && status.message ? status.message : '해임 신고 확인 실패');
+      }
+    } catch (err) {
+      showLoading(false);
+      await showSubmitModal({ type: 'error', title: '해임 신고 실패', html: escapeHtml(err.message || String(err)), confirmText: '확인' });
+    }
+  }
+})();
