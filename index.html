@@ -135,7 +135,7 @@
       </section>
 
       <form id="appointmentForm" class="card entry-form appointment-form" novalidate>
-        <section class="form-section basic-info-section">
+        <section class="form-section basic-info-section" hidden>
           <div class="section-title-row">
             <span class="round-number">1</span>
             <div>
@@ -188,29 +188,12 @@
 
     <section id="patrolModule" class="patrol-module v33-context-module" hidden>
       <section class="card v33-module-context" id="patrolContextSummary"></section>
-      <section class="notice card compact-card guide-card patrol-guide">
-        <div class="guide-card-head">
-          <div>
-            <h2>관리감독자 주간 순회점검표 작성</h2>
-            <p class="section-guide">매주 1회, 해당 주차 안에 순회점검표를 작성합니다. 전주·과거 점검결과는 별도 팝업으로 조회할 수 있습니다.</p>
-          </div>
-          <span class="guide-badge">주 1회 제출</span>
-        </div>
-        <div class="sample-box appointment-notice-box">
-          <div>
-            <strong>평가 반영 기준</strong>
-            <p>월 4회 정상 제출이 기본 기준입니다. 지난 주차를 나중에 몰아서 작성하면 지연 제출로 감점됩니다.</p>
-          </div>
-        </div>
-      </section>
-
       <form id="patrolForm" class="card entry-form patrol-form" novalidate>
-        <section class="form-section basic-info-section">
+        <section class="form-section basic-info-section" hidden>
           <div class="section-title-row">
             <span class="round-number">1</span>
             <div>
-              <h2>기본정보 확인</h2>
-              <p class="section-guide">영업본부 → 부서명 → 팀명 → 매장명 순서로 선택한 뒤 현재 임명된 관리감독자를 선택해주세요.</p>
+              <h2>기본정보</h2>
             </div>
           </div>
 
@@ -264,10 +247,9 @@
 
         <section class="form-section patrol-week-section">
           <div class="section-title-row">
-            <span class="round-number">2</span>
+            <span class="round-number">1</span>
             <div>
               <h2>주차 확인</h2>
-              <p class="section-guide">현재 주차가 자동 표시됩니다. 해당 주차 내 제출 시 정상 제출로 인정됩니다.</p>
             </div>
           </div>
           <div class="patrol-week-card">
@@ -275,48 +257,25 @@
             <div>
               <strong id="patrolWeekTitle">주차 계산 중...</strong>
               <span id="patrolWeekPeriod">제출 가능 기간을 계산 중입니다.</span>
-              <em>해당 주차 내 제출 시 정상 인정</em>
-            </div>
-          </div>
-          <div class="patrol-status-chip-row">
-            <span class="patrol-status-chip normal">정상 제출</span>
-            <span class="patrol-status-chip late">지연 제출</span>
-            <span class="patrol-status-chip missing">미제출</span>
-          </div>
-          <p class="patrol-warning">※ 다음 주에 지난 주차를 작성하면 지연 제출로 감점됩니다.</p>
-
-          <div class="patrol-history-card">
-            <div class="patrol-history-head">
-              <div>
-                <strong>점검결과 조회</strong>
-                <span>조회 결과는 별도 팝업창으로 열립니다. 화면이 길어지지 않고, TBM 공유문구 복사와 출력이 가능합니다.</span>
-              </div>
-            </div>
-            <div class="patrol-history-actions">
-              <button type="button" class="ghost-btn patrol-history-btn" id="patrolPrevWeekBtn">전주 점검결과 보기</button>
-              <button type="button" class="ghost-btn patrol-history-btn secondary" id="patrolPastSearchToggleBtn">과거 점검결과 조회</button>
             </div>
           </div>
         </section>
 
         <section class="form-section patrol-items-section">
           <div class="section-title-row">
-            <span class="round-number">3</span>
+            <span class="round-number">2</span>
             <div>
-              <h2>항목별 점검</h2>
-              <p class="section-guide">노란색 선정 항목 중 순회점검 성격에 맞는 26개 항목 기준입니다. 집기·바닥·매대 등 구분별 탭을 눌러 필요한 항목만 펼쳐서 점검하세요.</p>
+              <h2>점검표</h2>
             </div>
           </div>
           <div id="patrolItemsContainer" class="patrol-check-grid"></div>
-          <p class="patrol-inline-guide">미흡 선택 시 해당 항목에 미흡사항 내용과 사진을 등록해야 제출할 수 있습니다.</p>
         </section>
 
         <section class="form-section signature-section">
           <div class="section-title-row">
-            <span class="round-number">4</span>
+            <span class="round-number">3</span>
             <div>
               <h2>서명 후 제출</h2>
-              <p class="section-guide">제출 전 주차, 성명, 매장명, 사진 첨부 여부를 다시 확인해주세요.</p>
             </div>
           </div>
           <div class="signature-pad-wrap patrol-signature-wrap">

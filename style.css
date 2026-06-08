@@ -4413,3 +4413,57 @@ body.v34-minimal #patrolForm .patrol-items-section .section-guide {
     width: 100%;
   }
 }
+
+
+/* =========================================================
+   v36 순회점검 화면 간소화
+   - 첫 조직 선택 정보를 사용하므로 순회점검 내부 기본정보 영역 숨김
+   - 조회는 하단 빠른 실행바에서 처리
+   - 안내 문구 최소화
+   ========================================================= */
+#patrolModule .patrol-guide,
+#patrolForm .basic-info-section,
+#patrolForm .patrol-history-card,
+#patrolForm .patrol-status-chip-row,
+#patrolForm .patrol-warning,
+#patrolForm .section-guide,
+#patrolForm .patrol-inline-guide {
+  display: none !important;
+}
+#patrolModule .v33-module-context {
+  margin-bottom: 12px;
+}
+#patrolForm .patrol-week-section {
+  padding-top: 0;
+}
+#patrolForm .section-title-row {
+  margin-bottom: 10px;
+}
+#patrolForm .patrol-week-card {
+  margin-top: 0;
+}
+
+
+/* =========================================================
+   v37 선임/해임 화면 정리
+   ========================================================= */
+#v34AppointmentModeTabs,
+#v34DeappointPane {
+  display: none !important;
+}
+
+#appointmentModule .v35-mode-tabs {
+  margin-top: 0;
+}
+
+#appointmentModule .v35-status-pane {
+  margin-top: 0;
+}
+
+#appointmentModule .v35-status-head p {
+  display: none;
+}
+
+#appointmentModule .v35-status-actions .submit-btn {
+  margin-top: 0;
+}

@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxyziCXAJqdM6YFL0CTKtKw2OR-vqFKHOWs2NB4tdz1H0nGGI_WpbGzpeGb-D1t9B_C/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const IMAGE_COMPRESSION_CONFIG = {
   targetDataUrlLength: 260000,
   maxDataUrlLength: 360000,
@@ -2616,6 +2616,20 @@ function formatMonthDayWeekday(dateText) {
   return (date.getMonth() + 1) + '/' + date.getDate() + '(' + weekdays[date.getDay()] + ')';
 }
 
+function formatPatrolWeekLabel(weekInfo) {
+  if (!weekInfo) return '';
+  if (weekInfo.year && weekInfo.month && weekInfo.weekNo) {
+    return Number(weekInfo.year) + '년 ' + Number(weekInfo.month) + '월 ' + Number(weekInfo.weekNo) + '주차';
+  }
+  return formatPatrolWeekKeyToLabel(weekInfo.weekKey || weekInfo);
+}
+
+function formatPatrolWeekKeyToLabel(weekKey) {
+  const match = String(weekKey || '').match(/^(\d{4})-(\d{2})-W(\d{1,2})$/);
+  if (!match) return String(weekKey || '');
+  return Number(match[1]) + '년 ' + Number(match[2]) + '월 ' + Number(match[3]) + '주차';
+}
+
 function bindPatrolFileInputs() {
   document.addEventListener('change', function (event) {
     const input = event.target;
@@ -2867,7 +2881,7 @@ async function handlePatrolSubmit(event) {
       html: '<div class="modal-info-box">' +
         '<div><b>제출상태</b><span>' + escapeHtml(status.submitStatus || '저장 완료') + '</span></div>' +
         '<div><b>매장명</b><span>' + escapeHtml(basic.storeName) + '</span></div>' +
-        '<div><b>주차</b><span>' + escapeHtml(patrolWeekInfo.weekKey) + '</span></div>' +
+        '<div><b>주차</b><span>' + escapeHtml(formatPatrolWeekLabel(patrolWeekInfo)) + '</span></div>' +
         '</div><p class="modal-small-text">제출 결과는 순회점검_DB에 저장되며, 전주·과거 조회 화면에서 다시 확인할 수 있습니다.</p>',
       confirmText: '확인'
     });
@@ -3119,7 +3133,7 @@ async function loadPatrolResultForWeek(weekInfo, titlePrefix) {
   const body = document.getElementById('patrolResultViewerBody');
   const title = document.getElementById('patrolResultViewerTitle');
   openPatrolResultModal();
-  if (title) title.textContent = titlePrefix + ' - ' + weekInfo.weekKey;
+  if (title) title.textContent = titlePrefix + ' - ' + formatPatrolWeekLabel(weekInfo);
   if (body) body.innerHTML = '<div class="inline-message pending">점검결과를 불러오는 중입니다...</div>';
   try {
     const data = await jsonpRequest({
@@ -3142,12 +3156,12 @@ function renderPatrolResultViewer(data, titlePrefix, weekInfo) {
     body.innerHTML = '<div class="patrol-empty-result">' +
       '<strong>제출된 점검표가 없습니다.</strong>' +
       '<p>' + escapeHtml((data && data.message) || '선택한 매장·관리감독자·주차 기준 제출 내역이 없습니다.') + '</p>' +
-      '<p class="modal-small-text">조회 주차: ' + escapeHtml(weekInfo.weekKey) + '</p>' +
+      '<p class="modal-small-text">조회 주차: ' + escapeHtml(formatPatrolWeekLabel(weekInfo)) + '</p>' +
       '</div>';
     return;
   }
   const rec = data.record || {};
-  if (title) title.textContent = titlePrefix + ' - ' + (rec.weekLabel || rec.weekKey || weekInfo.weekKey);
+  if (title) title.textContent = titlePrefix + ' - ' + (rec.weekLabel || formatPatrolWeekKeyToLabel(rec.weekKey) || formatPatrolWeekLabel(weekInfo));
   const summary = rec.summary || {};
   const insufficientItems = (rec.items || []).filter(function (item) { return item.result === '미흡'; });
   const tbmText = buildPatrolTbmText(rec, insufficientItems);
@@ -3166,14 +3180,14 @@ function renderPatrolResultViewer(data, titlePrefix, weekInfo) {
     '</div>' +
     '<div class="patrol-print-area" id="patrolPrintArea">' +
       '<div class="patrol-result-header">' +
-        '<div><span class="badge-soft">읽기 전용</span><h3>관리감독자 주간 순회점검표</h3><p>' + escapeHtml(rec.weekLabel || rec.weekKey || '') + '</p></div>' +
+        '<div><span class="badge-soft">읽기 전용</span><h3>관리감독자 주간 순회점검표</h3><p>' + escapeHtml(rec.weekLabel || formatPatrolWeekKeyToLabel(rec.weekKey) || '') + '</p></div>' +
         '<div class="patrol-result-status ' + escapeHtml(rec.submitStatusClass || '') + '">' + escapeHtml(rec.submitStatus || '') + '</div>' +
       '</div>' +
       '<div class="patrol-result-info-grid">' +
         '<div><b>매장명</b><span>' + escapeHtml(rec.storeName || '') + '</span></div>' +
         '<div><b>점검자</b><span>' + escapeHtml((rec.supervisorName || '') + ' / ' + (rec.employeeId || '')) + '</span></div>' +
         '<div><b>제출일시</b><span>' + escapeHtml(rec.submittedAt || '') + '</span></div>' +
-        '<div><b>주차</b><span>' + escapeHtml(rec.weekKey || '') + '</span></div>' +
+        '<div><b>주차</b><span>' + escapeHtml(rec.weekLabel || formatPatrolWeekKeyToLabel(rec.weekKey) || '') + '</span></div>' +
       '</div>' +
       '<div class="patrol-result-summary-grid">' +
         '<div><strong>' + (summary.total || 0) + '</strong><span>총 항목</span></div>' +
@@ -3230,7 +3244,7 @@ function buildPatrolTbmText(rec, insufficientItems) {
   const lines = [];
   lines.push('[전주 순회점검 TBM 공유자료]');
   lines.push('매장: ' + (rec.storeName || ''));
-  lines.push('점검주차: ' + (rec.weekLabel || rec.weekKey || ''));
+  lines.push('점검주차: ' + (rec.weekLabel || formatPatrolWeekKeyToLabel(rec.weekKey) || ''));
   lines.push('제출상태: ' + (rec.submitStatus || ''));
   lines.push('');
   if (!insufficientItems.length) {
@@ -4455,5 +4469,79 @@ function prefillFirstAppointmentStoreRow() {
     if (!list) return;
     var guide = list.querySelector('.v35-empty-store-guide');
     if (guide) guide.remove();
+  }, true);
+})();
+
+
+/* =========================================================
+   v37 선임/해임 화면 정리
+   - 기존 선임하기/해임하기 대형 탭 제거
+   - 선임현황 조회 시 로딩 오버레이 표시
+   ========================================================= */
+(function () {
+  function $(id) { return document.getElementById(id); }
+
+  function hideOldAppointmentModeTabs() {
+    var oldTabs = $('v34AppointmentModeTabs');
+    if (oldTabs) {
+      oldTabs.hidden = true;
+      oldTabs.style.display = 'none';
+    }
+    var oldPane = $('v34DeappointPane');
+    if (oldPane) oldPane.hidden = true;
+  }
+
+  function isAppointmentModuleVisible() {
+    var module = $('appointmentModule');
+    return !!(module && !module.hidden);
+  }
+
+  window.addEventListener('DOMContentLoaded', function () {
+    setTimeout(hideOldAppointmentModeTabs, 20);
+    setTimeout(hideOldAppointmentModeTabs, 300);
+    setTimeout(hideOldAppointmentModeTabs, 1000);
+  });
+
+  if (!window.__v37AppointmentSwitchPatched && typeof window.switchToAppointmentModule === 'function') {
+    window.__v37AppointmentSwitchPatched = true;
+    var previousSwitchToAppointmentModule = window.switchToAppointmentModule;
+    window.switchToAppointmentModule = function () {
+      if (typeof showLoading === 'function') {
+        showLoading(true, '선임현황 리스트를 가져오는 중입니다. 잠시만 기다려주세요.', '선임현황 불러오는 중');
+      }
+      previousSwitchToAppointmentModule.apply(this, arguments);
+      setTimeout(hideOldAppointmentModeTabs, 0);
+      setTimeout(hideOldAppointmentModeTabs, 80);
+      setTimeout(function () {
+        var list = $('v35AppointmentStatusList');
+        if (list && !list.textContent.trim()) {
+          list.innerHTML = '<div class="inline-message pending">선임현황을 불러오는 중입니다...</div>';
+        }
+      }, 90);
+    };
+  }
+
+  if (!window.__v37JsonpLoadingPatched && typeof jsonpRequest === 'function') {
+    window.__v37JsonpLoadingPatched = true;
+    var previousJsonpRequest = jsonpRequest;
+    jsonpRequest = function (params, timeoutMs) {
+      var mode = params && params.mode;
+      var showAppointmentLoading = isAppointmentModuleVisible() && (mode === 'appointmentPersonList' || mode === 'appointmentList');
+      if (showAppointmentLoading && typeof showLoading === 'function') {
+        showLoading(true, '선임현황 리스트를 가져오는 중입니다. 잠시만 기다려주세요.', '선임현황 불러오는 중');
+      }
+      return previousJsonpRequest(params, timeoutMs).then(function (result) {
+        if (showAppointmentLoading && typeof showLoading === 'function') showLoading(false);
+        return result;
+      }).catch(function (error) {
+        if (showAppointmentLoading && typeof showLoading === 'function') showLoading(false);
+        throw error;
+      });
+    };
+  }
+
+  document.addEventListener('click', function (event) {
+    var target = event.target && event.target.closest ? event.target.closest('#showAppointmentModuleBtn, [data-nav-module="appointment"], #v34GoAppointmentFromLoginBtn') : null;
+    if (target) setTimeout(hideOldAppointmentModeTabs, 30);
   }, true);
 })();
