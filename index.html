@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>관리감독자 통합 관리 시스템</title>
-  <link rel="stylesheet" href="style.css?v=20260608_v35" />
+  <link rel="stylesheet" href="style.css?v=20260608_v39" />
 </head>
 <body>
   <div class="app-shell v33-shell">
@@ -13,7 +13,7 @@
         <span class="daiso-mark">daiso</span>
         <div>
           <strong>관리감독자 통합 관리 시스템</strong>
-          <em id="topbarContextText">먼저 조직을 선택해주세요</em>
+          <em id="topbarContextText">사번과 성명을 입력해주세요</em>
         </div>
       </div>
       <button type="button" class="top-menu-btn" id="topMenuBtn" aria-controls="appDrawer" aria-expanded="false">☰ 메뉴</button>
@@ -26,10 +26,9 @@
           <span class="daiso-mark drawer-logo">daiso</span>
           <button type="button" class="drawer-close-btn" id="drawerCloseBtn">닫기</button>
         </div>
-        <div class="drawer-context" id="drawerContextText">조직 선택 전입니다.</div>
+        <div class="drawer-context" id="drawerContextText">본인확인 전입니다.</div>
         <nav class="drawer-nav">
-          <button type="button" class="drawer-nav-btn" data-nav-module="org"><span>00</span><b>조직 다시 선택</b></button>
-          <button type="button" class="drawer-nav-btn" data-nav-module="home"><span>⌂</span><b>업무 선택</b></button>
+          <button type="button" class="drawer-nav-btn" data-nav-module="org"><span>00</span><b>본인확인 다시하기</b></button>
           <button type="button" class="drawer-nav-btn" data-nav-module="appointment"><span>01</span><b>선임/해임 신고</b></button>
           <button type="button" class="drawer-nav-btn" data-nav-module="patrol"><span>02</span><b>주간순회점검</b></button>
           <button type="button" class="drawer-nav-btn" data-nav-module="evaluation"><span>03</span><b>반기평가</b></button>
@@ -38,64 +37,63 @@
     </div>
 
     <main class="page v18-page v33-page" id="pageRoot">
-      <section class="card v33-login-card" id="orgSelectPage">
-        <div class="v33-page-head">
+      <section class="card v33-login-card v39-login-card" id="orgSelectPage">
+        <div class="v33-page-head v39-login-head">
           <span class="daiso-mark">daiso</span>
           <p class="badge muted-badge">관리감독자 통합 관리 시스템</p>
-          <h1>먼저 조직과 관리감독자를 선택해주세요.</h1>
-          <p class="section-guide">처음 한 번 선택하면 선임/해임 신고, 주간순회점검, 반기평가 화면에 자동으로 반영됩니다.</p>
+          <h1>관리감독자 본인확인</h1>
+          <p class="section-guide">사번과 성명을 입력하면 현재 선임된 매장을 확인할 수 있습니다.</p>
         </div>
 
-        <div id="globalOrgLoadMessage" class="inline-message pending">매장정보를 불러오는 중입니다...</div>
-
-        <div class="v33-org-grid">
+        <div class="v39-login-form" aria-label="관리감독자 본인확인">
           <label>
-            영업본부 <span class="required-mark">*</span>
-            <select id="globalHeadquarterSelect" disabled>
-              <option value="">영업본부 불러오는 중...</option>
-            </select>
+            사번 <span class="required-mark">*</span>
+            <div class="employee-id-wrap v39-login-employee">
+              <span class="employee-prefix">AD</span>
+              <input type="tel" id="loginEmployeeIdInput" placeholder="숫자만 입력" inputmode="numeric" pattern="[0-9]*" autocomplete="off" />
+            </div>
           </label>
           <label>
-            부서명 <span class="required-mark">*</span>
-            <select id="globalDepartmentSelect" disabled>
-              <option value="">영업본부를 먼저 선택해주세요</option>
-            </select>
+            성명 <span class="required-mark">*</span>
+            <input type="text" id="loginNameInput" placeholder="예: 홍길동" autocomplete="name" />
+            <p class="field-guide">이름은 한글 정자 기준으로 입력해주세요. 글자는 가려지지 않습니다.</p>
           </label>
-          <label>
-            팀명 <span class="required-mark">*</span>
-            <select id="globalTeamSelect" disabled>
-              <option value="">부서명을 먼저 선택해주세요</option>
-            </select>
-          </label>
-          <label>
-            매장명 <span class="required-mark">*</span>
-            <select id="globalStoreSelect" disabled>
-              <option value="">팀명을 먼저 선택해주세요</option>
-            </select>
-          </label>
+          <button type="button" id="loginLookupBtn" class="submit-btn v39-login-btn">조회하기</button>
         </div>
 
-        <div id="globalAppointmentCard" class="appointed-card v33-appointment-card" hidden>
-          <div class="appointed-head">
-            <strong>현재 임명된 관리감독자</strong>
-            <span id="globalAppointmentStatus">매장을 선택하면 임명 정보를 확인합니다.</span>
+        <div id="loginResultMessage" class="result v39-login-result" aria-live="polite"></div>
+
+        <section id="loginStoreResultCard" class="v39-store-result" hidden>
+          <div class="v39-store-result-head">
+            <div>
+              <strong id="loginPersonSummary">관리감독자</strong>
+              <p>업무를 진행할 매장을 선택해주세요.</p>
+            </div>
+            <button type="button" class="sub-btn small-btn" id="loginRetryBtn">다시 조회</button>
           </div>
-          <div id="globalAppointmentList" class="appointed-list"></div>
-        </div>
+          <div id="loginStoreList" class="v39-store-list"></div>
+        </section>
 
-        <button type="button" id="globalStartWorkBtn" class="submit-btn v33-next-btn" disabled>선택 완료 후 업무 선택하기</button>
+        <section id="loginNoAppointmentCard" class="v39-no-appointment" hidden>
+          <strong>조회된 선임 매장이 없습니다.</strong>
+          <p>입력한 사번/성명으로 등록된 관리감독자 선임 정보가 없습니다. 먼저 선임 등록을 진행해주세요.</p>
+          <div class="v39-login-actions">
+            <button type="button" class="submit-btn" id="loginGoAppointmentBtn">선임 등록하러 가기</button>
+            <button type="button" class="sub-btn" id="loginBackBtn">다시 입력하기</button>
+          </div>
+        </section>
       </section>
 
       <section class="card v33-work-select" id="workSelectPage" hidden>
         <div class="v33-selected-summary">
-          <span class="selected-info-label">선택한 조직</span>
-          <strong id="globalSelectedSummary">조직을 먼저 선택해주세요.</strong>
-          <button type="button" class="sub-btn small-btn" id="changeGlobalOrgBtn">조직 다시 선택</button>
+          <span class="selected-info-label">선택한 매장</span>
+          <strong id="globalSelectedSummary">본인확인을 먼저 진행해주세요.</strong>
+          <button type="button" class="sub-btn small-btn" id="changeGlobalOrgBtn">본인확인 다시하기</button>
         </div>
         <div class="v33-page-head compact">
           <p class="badge muted-badge">업무 선택</p>
           <h1>진행할 업무를 선택해주세요.</h1>
-          <p class="section-guide">각 업무는 별도 화면으로 열립니다. 필요한 업무만 선택해서 진행하세요.</p>
+          <p class="section-guide">선택한 매장 기준으로 업무가 열립니다.</p>
         </div>
         <div class="v33-work-list" aria-label="업무 선택">
           <button type="button" class="v33-work-row" id="showAppointmentModuleBtn">
@@ -530,6 +528,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=20260608_v35"></script>
+  <script src="script.js?v=20260608_v39"></script>
 </body>
 </html>

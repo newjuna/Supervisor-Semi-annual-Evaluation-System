@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwM3iqLTa8fL9V2-4bLgSWXzdCvobM57--7nHEukjB2jb5NmenBHyUSgaYSyYT7lJIH/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const IMAGE_COMPRESSION_CONFIG = {
   targetDataUrlLength: 260000,
   maxDataUrlLength: 360000,
@@ -4677,4 +4677,397 @@ function prefillFirstAppointmentStoreRow() {
     var target = event.target && event.target.closest ? event.target.closest('#showAppointmentModuleBtn, [data-nav-module="appointment"], #v34GoAppointmentFromLoginBtn') : null;
     if (target) hideLoadingSoon();
   }, true);
+})();
+
+/* =========================================================
+   v39 본인확인 기반 화면 구조
+   - 첫 화면: 사번 + 성명 본인확인
+   - 조회 후 선임 매장 리스트 표시
+   - 미선임자는 선임 등록 화면으로 이동
+   - 업무선택 메뉴 중복 제거, 업무 버튼 즉시 반응 표시
+   ========================================================= */
+(function () {
+  function $(id) { return document.getElementById(id); }
+  function nk(v) { return String(v || '').trim().replace(/\s+/g, '').toLowerCase(); }
+  function eidFromDigits(digits) { return digits ? 'AD' + String(digits).replace(/\D/g, '') : ''; }
+  var v39LoginCache = {};
+  var v39Started = false;
+
+  // v39부터 조직도는 첫 화면에서 필수로 기다리지 않는다. 신규 선임 화면에서만 필요하므로 조용히 백그라운드 준비.
+  window.loadOrganizationTree = function () {
+    if (!validateAppsScriptUrl(false)) {
+      setGlobalOrgMessage && setGlobalOrgMessage('error', 'Apps Script URL을 먼저 script.js에 입력해주세요.');
+      setOrgMessage && setOrgMessage('error', 'Apps Script URL을 먼저 script.js에 입력해주세요.');
+      return;
+    }
+    try {
+      setGlobalOrgMessage && setGlobalOrgMessage('pending', '조직정보를 백그라운드에서 준비 중입니다.');
+      setOrgMessage && setOrgMessage('pending', '조직정보를 준비 중입니다.');
+    } catch(e) {}
+    jsonpRequest({ mode: 'org' }, 30000)
+      .then(function (data) {
+        if (!data || !data.success) throw new Error(data && data.message ? data.message : '조직정보 불러오기 실패');
+        orgTree = data.tree || {};
+        try { populateGlobalHeadquarters && populateGlobalHeadquarters(); } catch(e) {}
+        try { populateHeadquarters && populateHeadquarters(); } catch(e) {}
+        try { populatePatrolHeadquarters && populatePatrolHeadquarters(); } catch(e) {}
+        try { refreshAppointmentRows && refreshAppointmentRows(); } catch(e) {}
+        try {
+          setGlobalOrgMessage && setGlobalOrgMessage('success', '조직정보 준비 완료');
+          setOrgMessage && setOrgMessage('success', '조직정보 준비 완료');
+        } catch(e) {}
+      })
+      .catch(function (error) {
+        console.error(error);
+        try {
+          setGlobalOrgMessage && setGlobalOrgMessage('error', '조직정보를 준비하지 못했습니다. 신규 선임 시 새로고침 후 다시 시도해주세요.');
+          setOrgMessage && setOrgMessage('error', '조직정보를 준비하지 못했습니다.');
+        } catch(e) {}
+      });
+  };
+
+  window.addEventListener('DOMContentLoaded', function () {
+    setTimeout(initV39LoginFlow, 0);
+    setTimeout(initV39LoginFlow, 500);
+  });
+
+  function initV39LoginFlow() {
+    if (v39Started) return;
+    var loginEmp = $('loginEmployeeIdInput');
+    var loginName = $('loginNameInput');
+    var lookupBtn = $('loginLookupBtn');
+    if (!loginEmp || !loginName || !lookupBtn) return;
+    v39Started = true;
+    document.body.classList.add('v39-login-flow');
+    removeDuplicateDrawerHome();
+
+    loginEmp.addEventListener('input', function () {
+      loginEmp.value = String(loginEmp.value || '').replace(/\D/g, '');
+    });
+    loginName.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        handleV39Lookup();
+      }
+    });
+    loginEmp.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        loginName.focus();
+      }
+    });
+    lookupBtn.addEventListener('click', handleV39Lookup);
+    var retry = $('loginRetryBtn');
+    if (retry) retry.addEventListener('click', showOrganizationSelectPage);
+    var back = $('loginBackBtn');
+    if (back) back.addEventListener('click', showOrganizationSelectPage);
+    var goAppt = $('loginGoAppointmentBtn');
+    if (goAppt) goAppt.addEventListener('click', function () { switchToAppointmentModule(); });
+
+    patchV39Navigation();
+    patchV39JsonpFastModes();
+    installImmediateButtonFeedback();
+    showOrganizationSelectPage();
+  }
+
+  function removeDuplicateDrawerHome() {
+    document.querySelectorAll('[data-nav-module="home"]').forEach(function (el) {
+      el.classList.add('v39-drawer-hidden');
+      el.hidden = true;
+    });
+  }
+
+  function patchV39JsonpFastModes() {
+    if (window.__v39JsonpFastPatched || typeof jsonpRequest !== 'function') return;
+    window.__v39JsonpFastPatched = true;
+    var prev = jsonpRequest;
+    jsonpRequest = function (params, timeoutMs) {
+      params = params || {};
+      if (params.mode === 'appointmentPersonList') params.mode = 'appointmentPersonListFast';
+      if (params.mode === 'appointmentList') params.mode = 'appointmentListFast';
+      return prev(params, timeoutMs);
+    };
+  }
+
+  function installImmediateButtonFeedback() {
+    document.addEventListener('click', function (event) {
+      var btn = event.target && event.target.closest ? event.target.closest('#showAppointmentModuleBtn, #showPatrolModuleBtn, #showEvaluationModuleBtn') : null;
+      if (!btn) return;
+      btn.classList.add('is-loading');
+      var label = btn.querySelector('b') ? btn.querySelector('b').textContent : '화면';
+      if (typeof showLoading === 'function') showLoading(true, label + ' 화면을 준비하는 중입니다.', '화면 준비 중');
+      setTimeout(function () { btn.classList.remove('is-loading'); if (typeof showLoading === 'function') showLoading(false); }, 500);
+      setTimeout(function () { if (typeof showLoading === 'function') showLoading(false); }, 1400);
+    }, true);
+  }
+
+  function patchV39Navigation() {
+    if (window.__v39NavigationPatched) return;
+    window.__v39NavigationPatched = true;
+
+    window.showOrganizationSelectPage = function () {
+      var orgPage = $('orgSelectPage');
+      var workPage = $('workSelectPage');
+      if (orgPage) orgPage.hidden = false;
+      if (workPage) workPage.hidden = true;
+      hideAllBusinessModules && hideAllBusinessModules();
+      selectedGlobalContext = null;
+      globalAppointmentCandidate = null;
+      updateV39TopContext();
+      clearV39LoginResults(false);
+      syncGlobalModuleNavigation && syncGlobalModuleNavigation('org');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      var emp = $('loginEmployeeIdInput');
+      if (emp) setTimeout(function () { emp.focus(); }, 120);
+    };
+
+    window.showWorkChoicePage = function () {
+      if (!selectedGlobalContext || selectedGlobalContext.needsAppointment) {
+        showOrganizationSelectPage();
+        return;
+      }
+      var orgPage = $('orgSelectPage');
+      var workPage = $('workSelectPage');
+      if (orgPage) orgPage.hidden = true;
+      if (workPage) workPage.hidden = false;
+      hideAllBusinessModules && hideAllBusinessModules();
+      updateV39TopContext();
+      syncGlobalModuleNavigation && syncGlobalModuleNavigation('home');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.showHomeModule = function () {
+      showWorkChoicePage();
+    };
+
+    window.requireGlobalContextBeforeModule = function () {
+      if (selectedGlobalContext) return true;
+      showSubmitModal({
+        type: 'error',
+        title: '본인확인이 필요합니다',
+        html: '업무를 진행하기 전에 먼저 <strong>사번과 성명</strong>으로 본인확인을 해주세요.',
+        confirmText: '확인'
+      });
+      showOrganizationSelectPage();
+      return false;
+    };
+
+    window.switchToAppointmentModule = function () {
+      if (!selectedGlobalContext) {
+        showSubmitModal({ type: 'error', title: '본인확인 필요', html: '먼저 사번과 성명으로 조회해주세요.', confirmText: '확인' });
+        showOrganizationSelectPage();
+        return;
+      }
+      showBusinessModule('appointmentModule', 'appointment');
+      applySelectedContextToModules && applySelectedContextToModules();
+      renderModuleContextSummary && renderModuleContextSummary('appointmentContextSummary', '선임/해임 신고');
+      try { simplifyV34StaticCards && simplifyV34StaticCards(); } catch(e) {}
+      setTimeout(function () { triggerAppointmentStatusRefresh(); }, 80);
+      setTimeout(function () { triggerAppointmentStatusRefresh(); }, 700);
+    };
+
+    window.switchToPatrolModule = function () {
+      if (!requireGlobalContextBeforeModule()) return;
+      if (selectedGlobalContext.needsAppointment) return showNeedAppointmentModal();
+      showBusinessModule('patrolModule', 'patrol');
+      applySelectedContextToModules && applySelectedContextToModules();
+      renderModuleContextSummary && renderModuleContextSummary('patrolContextSummary', '주간순회점검');
+      updatePatrolWeekInfo && updatePatrolWeekInfo();
+      setTimeout(function () { resizePatrolSignatureCanvas && resizePatrolSignatureCanvas(true); }, 120);
+    };
+
+    window.switchToEvaluationModule = function () {
+      if (!requireGlobalContextBeforeModule()) return;
+      if (selectedGlobalContext.needsAppointment) return showNeedAppointmentModal();
+      showBusinessModule('evaluationModule', 'evaluation');
+      applySelectedContextToModules && applySelectedContextToModules();
+      renderModuleContextSummary && renderModuleContextSummary('evaluationContextSummary', '반기평가');
+      updateSelectedInfoSummary && updateSelectedInfoSummary();
+      if (pageRoot) pageRoot.classList.add('evaluation-mode');
+      if (noticeCard) noticeCard.hidden = true;
+      if (basicInfoSection) basicInfoSection.hidden = true;
+      if (evaluationPage) evaluationPage.hidden = false;
+      setTimeout(function () { resizeSignatureCanvas && resizeSignatureCanvas(true); }, 120);
+    };
+
+    // 기존 드로어 클릭 이벤트보다 뒤에서 다시 한 번 정리
+    document.querySelectorAll('[data-nav-module]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var target = button.getAttribute('data-nav-module');
+        closeV33Drawer && closeV33Drawer();
+        if (target === 'org') showOrganizationSelectPage();
+        if (target === 'appointment') switchToAppointmentModule();
+        if (target === 'patrol') switchToPatrolModule();
+        if (target === 'evaluation') switchToEvaluationModule();
+      });
+    });
+  }
+
+  function showBusinessModule(visibleId, active) {
+    var orgPage = $('orgSelectPage');
+    var workPage = $('workSelectPage');
+    if (orgPage) orgPage.hidden = true;
+    if (workPage) workPage.hidden = true;
+    ['appointmentModule', 'patrolModule', 'evaluationModule'].forEach(function (id) {
+      var el = $(id);
+      if (el) el.hidden = id !== visibleId;
+    });
+    syncGlobalModuleNavigation && syncGlobalModuleNavigation(active);
+    updateV39TopContext();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof showLoading === 'function') setTimeout(function () { showLoading(false); }, 450);
+  }
+
+  function showNeedAppointmentModal() {
+    showSubmitModal({
+      type: 'error',
+      title: '관리감독자 선임 필요',
+      html: '조회된 선임 매장이 없습니다.<br><br>먼저 <strong>선임/해임 신고</strong>에서 신규 선임을 등록해주세요.',
+      confirmText: '선임 등록으로 이동'
+    }).then(function () { switchToAppointmentModule(); });
+  }
+
+  function updateV39TopContext() {
+    var text = '본인확인 전입니다.';
+    if (selectedGlobalContext) {
+      if (selectedGlobalContext.storeName) text = [selectedGlobalContext.storeName, selectedGlobalContext.supervisorName, selectedGlobalContext.employeeId].filter(Boolean).join(' · ');
+      else text = [selectedGlobalContext.supervisorName, selectedGlobalContext.employeeId, '선임 필요'].filter(Boolean).join(' · ');
+    }
+    var topbar = $('topbarContextText');
+    var drawer = $('drawerContextText');
+    var summary = $('globalSelectedSummary');
+    if (topbar) topbar.textContent = text;
+    if (drawer) drawer.textContent = text;
+    if (summary) summary.textContent = text;
+  }
+
+  function clearV39LoginResults(clearInputs) {
+    var msg = $('loginResultMessage');
+    var result = $('loginStoreResultCard');
+    var noAppt = $('loginNoAppointmentCard');
+    if (msg) { msg.className = 'result v39-login-result'; msg.innerHTML = ''; }
+    if (result) result.hidden = true;
+    if (noAppt) noAppt.hidden = true;
+    if (clearInputs) {
+      var emp = $('loginEmployeeIdInput');
+      var name = $('loginNameInput');
+      if (emp) emp.value = '';
+      if (name) name.value = '';
+    }
+  }
+
+  function setV39LoginMessage(type, html) {
+    var msg = $('loginResultMessage');
+    if (!msg) return;
+    msg.className = 'result v39-login-result ' + (type || '');
+    msg.innerHTML = html || '';
+  }
+
+  async function handleV39Lookup() {
+    if (!validateAppsScriptUrl()) return;
+    var empInput = $('loginEmployeeIdInput');
+    var nameInput = $('loginNameInput');
+    var lookupBtn = $('loginLookupBtn');
+    var digits = empInput ? String(empInput.value || '').replace(/\D/g, '') : '';
+    var employeeId = eidFromDigits(digits);
+    var name = normalizeText(nameInput ? nameInput.value || '' : '');
+    if (!employeeId) return setV39LoginMessage('error', '사번 숫자를 입력해주세요. AD는 자동으로 붙습니다.');
+    if (!name) return setV39LoginMessage('error', '성명을 입력해주세요. 이름은 가려지지 않으므로 입력값을 확인할 수 있습니다.');
+
+    clearV39LoginResults(false);
+    if (lookupBtn) { lookupBtn.disabled = true; lookupBtn.classList.add('is-loading'); lookupBtn.textContent = '조회 중...'; }
+    setV39LoginMessage('pending', '선임된 매장 정보를 조회하는 중입니다. 잠시만 기다려주세요.');
+
+    try {
+      var cacheKey = employeeId + '|' + nk(name);
+      var data = v39LoginCache[cacheKey];
+      if (!data) {
+        data = await jsonpRequest({ mode: 'appointmentPersonListFast', employeeId: employeeId }, 18000);
+        v39LoginCache[cacheKey] = data;
+      }
+      if (!data || data.success === false) throw new Error(data && data.message ? data.message : '조회 실패');
+      var rows = (data.appointments || []).filter(function (row) {
+        return nk(row.supervisorName) === nk(name);
+      });
+      if (rows.length) renderV39StoreList(name, employeeId, rows);
+      else renderV39NoAppointment(name, employeeId);
+    } catch (err) {
+      console.error(err);
+      setV39LoginMessage('error', '조회 중 오류가 발생했습니다.<br>' + escapeHtml(err.message || String(err)));
+    } finally {
+      if (lookupBtn) { lookupBtn.disabled = false; lookupBtn.classList.remove('is-loading'); lookupBtn.textContent = '조회하기'; }
+      if (typeof showLoading === 'function') showLoading(false);
+    }
+  }
+
+  function renderV39StoreList(name, employeeId, rows) {
+    var card = $('loginStoreResultCard');
+    var noAppt = $('loginNoAppointmentCard');
+    var list = $('loginStoreList');
+    var person = $('loginPersonSummary');
+    if (noAppt) noAppt.hidden = true;
+    if (card) card.hidden = false;
+    if (person) person.textContent = name + ' / ' + employeeId;
+    setV39LoginMessage('success', '현재 선임된 매장 ' + rows.length + '건이 확인되었습니다.');
+    if (!list) return;
+    list.innerHTML = rows.map(function (row, index) {
+      return '<button type="button" class="v39-store-btn" data-v39-store-index="' + index + '">' +
+        '<div><strong>' + escapeHtml(row.storeName || '') + '</strong>' +
+        '<span>' + escapeHtml([row.headquarter || row.storeType || '', row.department || '', row.team || ''].filter(Boolean).join(' · ')) + '</span></div>' +
+        '<em>선택</em>' +
+        '</button>';
+    }).join('');
+    window.__v39LoginRows = rows;
+    list.querySelectorAll('[data-v39-store-index]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var row = (window.__v39LoginRows || [])[Number(btn.getAttribute('data-v39-store-index'))];
+        selectV39Store(row);
+      });
+    });
+  }
+
+  function renderV39NoAppointment(name, employeeId) {
+    var card = $('loginStoreResultCard');
+    var noAppt = $('loginNoAppointmentCard');
+    if (card) card.hidden = true;
+    if (noAppt) noAppt.hidden = false;
+    selectedGlobalContext = {
+      headquarter: '', department: '', team: '', storeName: '',
+      supervisorName: name, employeeId: employeeId,
+      appointment: null, needsAppointment: true
+    };
+    applySelectedContextToModules && applySelectedContextToModules();
+    updateV39TopContext();
+    setV39LoginMessage('pending', '선임된 매장이 없습니다. 신규 선임 등록이 필요합니다.');
+  }
+
+  function selectV39Store(row) {
+    if (!row) return;
+    selectedGlobalContext = {
+      headquarter: row.headquarter || row.storeType || '',
+      department: row.department || '',
+      team: row.team || '',
+      storeName: row.storeName || '',
+      supervisorName: row.supervisorName || '',
+      employeeId: row.employeeId || '',
+      appointment: row,
+      needsAppointment: false
+    };
+    globalAppointmentCandidate = row;
+    applySelectedContextToModules && applySelectedContextToModules();
+    updateV39TopContext();
+    showWorkChoicePage();
+  }
+
+  function triggerAppointmentStatusRefresh() {
+    var btn = $('v35RefreshAppointmentStatusBtn');
+    if (btn) {
+      try { btn.click(); } catch(e) {}
+    }
+    if (typeof showLoading === 'function') {
+      setTimeout(function () { showLoading(false); }, 350);
+      setTimeout(function () { showLoading(false); }, 1500);
+      setTimeout(function () { showLoading(false); }, 4000);
+    }
+  }
 })();

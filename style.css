@@ -4563,3 +4563,47 @@ body.v34-minimal #patrolForm .patrol-items-section .section-guide {
   .history-status { justify-self: start; }
   .patrol-result-photo-grid { grid-template-columns: 1fr; }
 }
+
+/* =========================================================
+   v39 본인확인 기반 화면 구조
+   - 첫 화면: 사번 + 성명 조회
+   - 조회 후 선임 매장 리스트 선택
+   - 조직 드롭다운 반복 선택 제거
+   ========================================================= */
+body.v39-login-flow .drawer-nav-btn[data-nav-module="home"]{display:none!important;}
+.v39-login-card{max-width:980px;margin:0 auto;}
+.v39-login-head h1{letter-spacing:-0.04em;}
+.v39-login-form{display:grid;grid-template-columns:1fr 1.2fr auto;gap:14px;align-items:end;margin-top:28px;padding:22px;border:1px solid #dfe6ef;border-radius:24px;background:#f8fafc;}
+.v39-login-form label{display:flex;flex-direction:column;gap:8px;font-weight:800;color:#0f172a;}
+.v39-login-form input{height:54px;border:1px solid #d8e1ee;border-radius:14px;padding:0 16px;font-size:18px;font-weight:800;color:#0f172a;background:#fff;box-sizing:border-box;}
+.v39-login-employee .employee-prefix{height:54px;min-width:58px;border-radius:14px 0 0 14px;display:flex;align-items:center;justify-content:center;background:#eef3f8;border:1px solid #d8e1ee;border-right:0;font-weight:900;color:#0f172a;}
+.v39-login-employee input{border-radius:0 14px 14px 0;}
+.v39-login-btn{height:54px;min-width:140px;margin:0;white-space:nowrap;}
+.v39-login-btn.is-loading,.v33-work-row.is-loading{opacity:.72;pointer-events:none;position:relative;}
+.v39-login-btn.is-loading::after,.v33-work-row.is-loading::after{content:'준비 중';margin-left:8px;font-size:12px;color:#64748b;}
+.v39-login-result{margin-top:16px;}
+.v39-store-result,.v39-no-appointment{margin-top:22px;border:1px solid #dfe6ef;border-radius:24px;background:#fff;padding:22px;}
+.v39-store-result-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px;}
+.v39-store-result-head strong{display:block;font-size:22px;color:#0f172a;letter-spacing:-.04em;}
+.v39-store-result-head p,.v39-no-appointment p{margin:6px 0 0;color:#64748b;font-weight:700;}
+.v39-store-list{display:grid;gap:12px;}
+.v39-store-btn{width:100%;border:1px solid #dfe6ef;background:#f8fafc;border-radius:20px;padding:18px 20px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:16px;cursor:pointer;transition:.15s ease;font-family:inherit;}
+.v39-store-btn:hover,.v39-store-btn:focus{border-color:#0f2240;background:#fff;box-shadow:0 8px 20px rgba(15,34,64,.08);outline:none;}
+.v39-store-btn strong{display:block;font-size:20px;color:#0f172a;letter-spacing:-.04em;}
+.v39-store-btn span{display:block;margin-top:4px;color:#64748b;font-weight:700;line-height:1.35;}
+.v39-store-btn em{font-style:normal;color:#e60012;font-weight:900;white-space:nowrap;}
+.v39-no-appointment strong{display:block;font-size:22px;color:#0f172a;letter-spacing:-.04em;}
+.v39-login-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+.v39-login-actions .submit-btn,.v39-login-actions .sub-btn{margin:0;min-height:48px;}
+.v39-module-loading{margin:14px 0;padding:14px 16px;border:1px solid #dbe7f5;border-radius:16px;background:#f8fbff;color:#475569;font-weight:800;}
+.v39-drawer-hidden{display:none!important;}
+.v39-fast-note{font-size:13px;color:#64748b;margin-top:10px;font-weight:700;}
+@media(max-width:760px){
+  .v39-login-form{grid-template-columns:1fr;padding:18px;border-radius:20px;}
+  .v39-login-btn{width:100%;}
+  .v39-store-result,.v39-no-appointment{padding:18px;border-radius:20px;}
+  .v39-store-result-head{display:block;}
+  .v39-store-result-head .small-btn{margin-top:12px;width:100%;}
+  .v39-store-btn{align-items:flex-start;flex-direction:column;}
+  .v39-store-btn em{align-self:flex-end;}
+}
