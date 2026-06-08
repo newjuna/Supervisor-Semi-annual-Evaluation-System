@@ -18,17 +18,20 @@
   <meta property="og:url" content="https://newjuna.github.io/Supervisor-Semi-annual-Evaluation-System/" />
   <meta property="og:image" content="https://newjuna.github.io/Supervisor-Semi-annual-Evaluation-System/assets/og/thumbnail.png" />
   <meta property="og:image:secure_url" content="https://newjuna.github.io/Supervisor-Semi-annual-Evaluation-System/assets/og/thumbnail.png" />
-  <meta property="og:image:alt" content="관리감독자 통합 관리 시스템 썸네일" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="관리감독자 통합 시스템 썸네일" />
 
-  <!-- Twitter/X 미리보기용 -->
+  <!-- Twitter/X 및 일부 메신저 미리보기용 -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="관리감독자 통합 관리 시스템" />
   <meta name="twitter:description" content="선임·해임 신고, 주간순회점검, 반기평가를 모바일에서 진행합니다." />
   <meta name="twitter:image" content="https://newjuna.github.io/Supervisor-Semi-annual-Evaluation-System/assets/og/thumbnail.png" />
+  <link rel="image_src" href="https://newjuna.github.io/Supervisor-Semi-annual-Evaluation-System/assets/og/thumbnail.png" />
 
-  <link rel="stylesheet" href="style.css?v=20260608_v40" />
+  <link rel="stylesheet" href="style.css?v=20260608_v41" />
 </head>
-
 <body>
   <div class="app-shell v33-shell">
     <header class="app-topbar no-print" aria-label="관리감독자 통합관리 상단 메뉴">
@@ -76,13 +79,11 @@
               <input type="tel" id="loginEmployeeIdInput" placeholder="숫자만 입력" inputmode="numeric" pattern="[0-9]*" autocomplete="off" />
             </div>
           </label>
-
           <label>
             성명 <span class="required-mark">*</span>
             <input type="text" id="loginNameInput" placeholder="예: 홍길동" autocomplete="name" />
             <p class="field-guide">이름은 한글 정자 기준으로 입력해주세요. 글자는 가려지지 않습니다.</p>
           </label>
-
           <button type="button" id="loginLookupBtn" class="submit-btn v39-login-btn">조회하기</button>
         </div>
 
@@ -115,26 +116,22 @@
           <strong id="globalSelectedSummary">본인확인을 먼저 진행해주세요.</strong>
           <button type="button" class="sub-btn small-btn" id="changeGlobalOrgBtn">본인확인 다시하기</button>
         </div>
-
         <div class="v33-page-head compact">
           <p class="badge muted-badge">업무 선택</p>
           <h1>진행할 업무를 선택해주세요.</h1>
           <p class="section-guide">선택한 매장 기준으로 업무가 열립니다.</p>
         </div>
-
         <div class="v33-work-list" aria-label="업무 선택">
           <button type="button" class="v33-work-row" id="showAppointmentModuleBtn">
             <span>01</span>
             <b>선임/해임 신고</b>
             <em>관리감독자 선임·변경·해임 신고</em>
           </button>
-
           <button type="button" class="v33-work-row" id="showPatrolModuleBtn">
             <span>02</span>
             <b>주간순회점검</b>
             <em>이번 주 점검표 작성, 과거 결과 조회</em>
           </button>
-
           <button type="button" class="v33-work-row" id="showEvaluationModuleBtn">
             <span>03</span>
             <b>반기평가</b>
@@ -143,163 +140,344 @@
         </div>
       </section>
 
-      <section id="appointmentModule" class="appointment-module v33-context-module" hidden>
-        <section class="card v33-module-context" id="appointmentContextSummary"></section>
+    <section id="appointmentModule" class="appointment-module v33-context-module" hidden>
+      <section class="card v33-module-context" id="appointmentContextSummary"></section>
+      <section class="notice card compact-card guide-card appointment-guide">
+        <div class="guide-card-head">
+          <div>
+            <h2>관리감독자 임명/변경</h2>
+            <p class="section-guide">사번과 성명을 입력한 뒤 담당 매장을 추가하세요. 완료 후 임명장 PDF를 바로 다운로드할 수 있습니다.</p>
+          </div>
+          <span class="guide-badge">PDF 즉시 다운로드</span>
+        </div>
+        <div class="sample-box appointment-notice-box">
+          <div>
+            <strong>저장 방식 안내</strong>
+            <p>임명장 PDF는 Google Drive에 저장하지 않고 구글시트 내부 링크로 보관됩니다. 작성자는 기존처럼 바로 다운로드할 수 있습니다.</p>
+          </div>
+        </div>
+      </section>
 
-        <form id="appointmentForm" class="card entry-form appointment-form" novalidate>
-          <section class="form-section appointment-store-section">
-            <div class="section-title-row">
-              <span class="round-number">1</span>
-              <div>
-                <h2>선임현황</h2>
-                <p class="section-guide">현재 선임된 매장을 확인하고, 필요한 경우 신규 선임 또는 해임을 진행합니다.</p>
+      <form id="appointmentForm" class="card entry-form appointment-form" novalidate>
+        <section class="form-section basic-info-section" hidden>
+          <div class="section-title-row">
+            <span class="round-number">1</span>
+            <div>
+              <h2>임명 대상자 정보</h2>
+              <p class="section-guide">관리감독자로 임명할 점장님의 성명과 사번을 입력해주세요.</p>
+            </div>
+          </div>
+          <div class="grid soft-grid">
+            <label>
+              관리감독자 성명 <span class="required-mark">*</span>
+              <input type="text" name="appointmentName" id="appointmentName" placeholder="성명 입력" autocomplete="name" required />
+            </label>
+            <label>
+              사번 <span class="required-mark">*</span>
+              <div class="employee-id-wrap">
+                <span class="employee-prefix">AD</span>
+                <input type="tel" name="appointmentEmployeeIdNumber" id="appointmentEmployeeIdInput" placeholder="숫자만 입력" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required />
+                <input type="hidden" name="appointmentEmployeeId" id="appointmentEmployeeIdFull" />
               </div>
-            </div>
-
-            <div id="appointmentStatusMessage" class="inline-message pending" hidden>
-              선임현황 리스트를 가져오는 중입니다. 잠시만 기다려주세요.
-            </div>
-
-            <div id="appointmentCurrentList" class="appointed-list"></div>
-
-            <div class="section-title-row appointment-new-title">
-              <span class="round-number">2</span>
-              <div>
-                <h2>신규 선임</h2>
-                <p class="section-guide">새로 선임할 매장만 추가해주세요.</p>
-              </div>
-            </div>
-
-            <div id="appointmentStoreList" class="appointment-store-list"></div>
-            <button type="button" class="start-btn secondary-start" id="addAppointmentStoreBtn">+ 신규 매장 추가하기</button>
-          </section>
-
-          <button type="submit" id="appointmentSubmitBtn" class="submit-btn">임명장 생성하기</button>
-          <div id="appointmentResultMessage" class="result" aria-live="polite"></div>
-        </form>
-
-        <section id="appointmentSuccessArea" class="card appointment-success-card" hidden>
-          <div class="success-icon">✨</div>
-          <h2>임명장 생성이 완료되었습니다</h2>
-          <p class="section-guide">아래 버튼으로 임명장 PDF를 확인할 수 있습니다.</p>
-          <div id="appointmentDownloadList" class="download-list"></div>
-          <div class="success-actions">
-            <button type="button" class="submit-btn" id="goEvaluationAfterAppointmentBtn">반기 업무수행평가로 이동</button>
-            <button type="button" class="submit-btn muted-submit" id="newAppointmentBtn">다른 매장 계속 임명</button>
+              <p class="field-guide">AD는 자동으로 붙습니다. 예: 2158812 입력 → AD2158812 저장</p>
+            </label>
           </div>
         </section>
+
+        <section class="form-section appointment-store-section">
+          <div class="section-title-row">
+            <span class="round-number">2</span>
+            <div>
+              <h2>임명 매장 선택</h2>
+              <p class="section-guide">겸직 매장이 있으면 매장을 계속 추가하세요. 각 매장별 임명장이 생성됩니다.</p>
+            </div>
+          </div>
+          <div id="appointmentStoreList" class="appointment-store-list"></div>
+          <button type="button" class="start-btn secondary-start" id="addAppointmentStoreBtn">+ 매장 추가하기</button>
+        </section>
+
+        <button type="submit" id="appointmentSubmitBtn" class="submit-btn">임명장 생성하기</button>
+        <div id="appointmentResultMessage" class="result" aria-live="polite"></div>
+      </form>
+
+      <section id="appointmentSuccessArea" class="card appointment-success-card" hidden>
+        <div class="success-icon">✨</div>
+        <h2>임명장 생성이 완료되었습니다</h2>
+        <p class="section-guide">아래 버튼으로 임명장 PDF를 확인한 뒤, 바로 반기 업무수행 평가로 이동할 수 있습니다.</p>
+        <div id="appointmentDownloadList" class="download-list"></div>
+        <div class="success-actions"><button type="button" class="submit-btn" id="goEvaluationAfterAppointmentBtn">반기 업무수행평가로 이동</button><button type="button" class="submit-btn muted-submit" id="newAppointmentBtn">다른 매장 계속 임명</button></div>
       </section>
+    </section>
 
-      <section id="patrolModule" class="patrol-module v33-context-module" hidden>
-        <section class="card v33-module-context" id="patrolContextSummary"></section>
 
-        <form id="patrolForm" class="card entry-form patrol-form" novalidate>
-          <section class="form-section patrol-week-section">
-            <div class="section-title-row">
-              <span class="round-number">1</span>
-              <div>
-                <h2>주차 확인</h2>
-              </div>
+    <section id="patrolModule" class="patrol-module v33-context-module" hidden>
+      <section class="card v33-module-context" id="patrolContextSummary"></section>
+      <form id="patrolForm" class="card entry-form patrol-form" novalidate>
+        <section class="form-section basic-info-section" hidden>
+          <div class="section-title-row">
+            <span class="round-number">1</span>
+            <div>
+              <h2>기본정보</h2>
             </div>
-
-            <div class="patrol-week-card">
-              <div class="patrol-week-icon" aria-hidden="true">📅</div>
-              <div>
-                <strong id="patrolWeekTitle">주차 계산 중...</strong>
-                <span id="patrolWeekPeriod">제출 가능 기간을 계산 중입니다.</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="form-section patrol-items-section">
-            <div class="section-title-row">
-              <span class="round-number">2</span>
-              <div>
-                <h2>점검표</h2>
-              </div>
-            </div>
-            <div id="patrolItemsContainer" class="patrol-check-grid"></div>
-          </section>
-
-          <section class="form-section signature-section">
-            <div class="section-title-row">
-              <span class="round-number">3</span>
-              <div>
-                <h2>서명 후 제출</h2>
-              </div>
-            </div>
-
-            <div class="signature-pad-wrap patrol-signature-wrap">
-              <canvas id="patrolSignaturePad" class="signature-pad" aria-label="주간순회점검 서명란"></canvas>
-              <div class="signature-placeholder">이곳에 손가락으로 서명해주세요</div>
-            </div>
-
-            <div class="signature-actions">
-              <button type="button" class="sub-btn" id="clearPatrolSignatureBtn">서명 지우기</button>
-            </div>
-          </section>
-
-          <div class="patrol-quick-actions no-print" aria-label="주간순회점검 빠른 실행">
-            <button type="button" id="patrolQuickWriteBtn" class="patrol-quick-btn active">작성</button>
-            <button type="button" id="patrolQuickSearchBtn" class="patrol-quick-btn">과거조회</button>
-            <button type="button" id="patrolQuickTopBtn" class="patrol-quick-btn">상단</button>
           </div>
 
-          <button type="submit" id="patrolSubmitBtn" class="submit-btn">주간순회점검표 제출하기</button>
-          <div id="patrolResultMessage" class="result" aria-live="polite"></div>
-        </form>
-      </section>
-
-      <section id="evaluationModule" class="evaluation-module v33-context-module" hidden>
-        <section class="card v33-module-context" id="evaluationContextSummary"></section>
-
-        <form id="evaluationForm" class="card entry-form" novalidate>
-          <input type="hidden" name="evaluationPeriod" value="2026년 상반기" />
-
-          <div id="evaluationPage" class="evaluation-page">
-            <section class="selected-info-card">
-              <div>
-                <span class="selected-info-label">선택한 정보</span>
-                <strong id="selectedInfoText">본인확인을 먼저 진행해주세요.</strong>
+          <div class="grid soft-grid">
+            <label>
+              영업본부 <span class="required-mark">*</span>
+              <select id="patrolHeadquarterSelect" required disabled>
+                <option value="">영업본부 불러오는 중...</option>
+              </select>
+            </label>
+            <label>
+              부서명 <span class="required-mark">*</span>
+              <select id="patrolDepartmentSelect" required disabled>
+                <option value="">영업본부를 먼저 선택해주세요</option>
+              </select>
+            </label>
+            <label>
+              팀명 <span class="required-mark">*</span>
+              <select id="patrolTeamSelect" required disabled>
+                <option value="">부서명을 먼저 선택해주세요</option>
+              </select>
+            </label>
+            <label>
+              매장명 <span class="required-mark">*</span>
+              <select id="patrolStoreSelect" required disabled>
+                <option value="">팀명을 먼저 선택해주세요</option>
+              </select>
+            </label>
+            <label class="legacy-supervisor-input">
+              관리감독자 성명
+              <input type="text" id="patrolSupervisorNameInput" placeholder="임명자 선택 시 자동 입력" readonly />
+            </label>
+            <label class="legacy-supervisor-input">
+              사번
+              <div class="employee-id-wrap">
+                <span class="employee-prefix">AD</span>
+                <input type="tel" id="patrolEmployeeIdInput" placeholder="임명자 선택 시 자동 입력" readonly />
+                <input type="hidden" id="patrolEmployeeIdFull" />
               </div>
-              <button type="button" id="editBasicInfoBtn" class="sub-btn small-btn">본인확인 다시하기</button>
-            </section>
-
-            <section class="form-section evaluation-form-section">
-              <div class="section-title-row">
-                <span class="round-number">1</span>
-                <div>
-                  <h2>평가 작성</h2>
-                </div>
-              </div>
-              <div id="evaluationItems" class="check-list"></div>
-            </section>
-
-            <section class="form-section signature-section">
-              <div class="section-title-row">
-                <span class="round-number">2</span>
-                <div>
-                  <h2>서명 후 제출</h2>
-                </div>
-              </div>
-
-              <div class="signature-pad-wrap">
-                <canvas id="signaturePad" class="signature-pad" aria-label="서명란"></canvas>
-                <div class="signature-placeholder">이곳에 손가락으로 서명해주세요</div>
-              </div>
-
-              <div class="signature-actions">
-                <button type="button" class="sub-btn" id="clearSignatureBtn">서명 지우기</button>
-              </div>
-            </section>
-
-            <button type="submit" id="submitBtn" class="submit-btn">반기평가 제출하기</button>
-            <div id="resultMessage" class="result" aria-live="polite"></div>
+            </label>
           </div>
-        </form>
+
+          <div id="patrolAppointmentListCard" class="appointed-card" hidden>
+            <div class="appointed-head">
+              <strong>현재 임명된 관리감독자</strong>
+              <span id="patrolAppointmentListStatus">매장을 선택하면 임명 정보를 확인합니다.</span>
+            </div>
+            <div id="patrolAppointmentList" class="appointed-list"></div>
+          </div>
+        </section>
+
+        <section class="form-section patrol-week-section">
+          <div class="section-title-row">
+            <span class="round-number">1</span>
+            <div>
+              <h2>주차 확인</h2>
+            </div>
+          </div>
+          <div class="patrol-week-card">
+            <div class="patrol-week-icon" aria-hidden="true">📅</div>
+            <div>
+              <strong id="patrolWeekTitle">주차 계산 중...</strong>
+              <span id="patrolWeekPeriod">제출 가능 기간을 계산 중입니다.</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section patrol-items-section">
+          <div class="section-title-row">
+            <span class="round-number">2</span>
+            <div>
+              <h2>점검표</h2>
+            </div>
+          </div>
+          <div id="patrolItemsContainer" class="patrol-check-grid"></div>
+        </section>
+
+        <section class="form-section signature-section">
+          <div class="section-title-row">
+            <span class="round-number">3</span>
+            <div>
+              <h2>서명 후 제출</h2>
+            </div>
+          </div>
+          <div class="signature-pad-wrap patrol-signature-wrap">
+            <canvas id="patrolSignaturePad" class="signature-pad" aria-label="주간순회점검 서명란"></canvas>
+            <div class="signature-placeholder">이곳에 손가락으로 서명해주세요</div>
+          </div>
+          <div class="signature-actions">
+            <button type="button" class="sub-btn" id="clearPatrolSignatureBtn">서명 지우기</button>
+          </div>
+        </section>
+
+
+        <div class="patrol-quick-actions no-print" aria-label="주간순회점검 빠른 실행">
+          <button type="button" id="patrolQuickWriteBtn" class="patrol-quick-btn active">작성</button>
+          <button type="button" id="patrolQuickSearchBtn" class="patrol-quick-btn">과거조회</button>
+          <button type="button" id="patrolQuickTopBtn" class="patrol-quick-btn">상단</button>
+        </div>
+
+        <button type="submit" id="patrolSubmitBtn" class="submit-btn">주간순회점검표 제출하기</button>
+        <div id="patrolResultMessage" class="result" aria-live="polite"></div>
+      </form>
+
+    </section>
+
+    <section id="evaluationModule" class="evaluation-module v33-context-module" hidden>
+      <section class="card v33-module-context" id="evaluationContextSummary"></section>
+    <section class="notice card compact-card guide-card" id="noticeCard">
+      <div class="guide-card-head">
+        <div>
+          <h2>작성 전 확인</h2>
+          <p class="section-guide">처음 작성하는 경우, 작성 가이드와 항목별 예시를 먼저 확인해주세요.</p>
+        </div>
+        <span class="guide-badge">모바일 최적화</span>
+      </div>
+      <div class="sample-box">
+        <div>
+          <strong>작성 가이드 이미지</strong>
+          <p>모바일 작성 순서, 첨부 방식, 제출 완료 흐름을 한눈에 확인할 수 있습니다.</p>
+        </div>
+        <div class="sample-actions">
+          <a class="ghost-btn" href="./assets/examples/guide_overview.png" target="_blank" rel="noopener">📒 작성 가이드 보기</a>
+          <a class="ghost-btn" href="./assets/examples/guide_overview.png" download>⬇ 이미지 다운로드</a>
+        </div>
+      </div>
+    </section>
+
+    <form id="evaluationForm" class="card entry-form" novalidate>
+      <input type="hidden" name="evaluationPeriod" value="2026년 상반기" />
+
+      <section class="form-section basic-info-section" id="basicInfoSection">
+        <div class="section-title-row">
+          <span class="round-number">1</span>
+          <div>
+            <h2>기본정보 입력</h2>
+            <p class="section-guide">영업본부 → 부서명 → 팀명 → 매장명 순서로 선택하면 현재 임명된 관리감독자를 확인할 수 있습니다.</p>
+          </div>
+        </div>
+
+        <div id="orgLoadMessage" class="inline-message pending">조직도 정보를 불러오는 중입니다...</div>
+
+        <div class="grid soft-grid">
+          <label>
+            영업본부 <span class="required-mark">*</span>
+            <select name="headquarter" id="headquarterSelect" required disabled>
+              <option value="">영업본부 불러오는 중...</option>
+            </select>
+          </label>
+
+          <label>
+            부서명 <span class="required-mark">*</span>
+            <select name="department" id="departmentSelect" required disabled>
+              <option value="">영업본부를 먼저 선택해주세요</option>
+            </select>
+          </label>
+
+          <label>
+            팀명 <span class="required-mark">*</span>
+            <select name="team" id="teamSelect" required disabled>
+              <option value="">부서명을 먼저 선택해주세요</option>
+            </select>
+          </label>
+
+          <label>
+            매장명 <span class="required-mark">*</span>
+            <select name="storeName" id="storeSelect" required disabled>
+              <option value="">팀명을 먼저 선택해주세요</option>
+            </select>
+          </label>
+
+          <label class="legacy-supervisor-input">
+            관리감독자 성명 <span class="required-mark">*</span>
+            <input type="text" name="supervisorName" id="supervisorNameInput" placeholder="임명자 선택 시 자동 입력" autocomplete="name" readonly required />
+          </label>
+
+          <label class="legacy-supervisor-input">
+            사번 <span class="required-mark">*</span>
+            <div class="employee-id-wrap">
+              <span class="employee-prefix">AD</span>
+              <input
+                type="tel"
+                name="employeeIdNumber"
+                id="employeeIdInput"
+                placeholder="임명자 선택 시 자동 입력"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                autocomplete="off"
+                readonly
+                required
+              />
+              <input type="hidden" name="employeeId" id="employeeIdFull" />
+            </div>
+            <p class="field-guide">매장 선택 후 현재 임명자를 선택하면 자동 입력됩니다.</p>
+          </label>
+        </div>
+
+        <div id="appointmentListCard" class="appointed-card" hidden>
+          <div class="appointed-head">
+            <strong>현재 임명된 관리감독자</strong>
+            <span id="appointmentListStatus">매장을 선택하면 임명 정보를 확인합니다.</span>
+          </div>
+          <div id="appointmentList" class="appointed-list"></div>
+        </div>
+
+        <div class="entry-actions">
+          <button type="button" id="startEvaluationBtn" class="start-btn">반기평가 이행하기 →</button>
+          <p class="entry-help">임명된 관리감독자를 선택한 후 평가를 진행합니다.</p>
+        </div>
+        <div id="entryMessage" class="result" aria-live="polite"></div>
       </section>
+
+      <div id="evaluationPage" class="evaluation-page" hidden>
+        <section class="selected-info-card">
+          <div>
+            <span class="selected-info-label">선택한 정보</span>
+            <strong id="selectedInfoText">기본정보를 입력해주세요.</strong>
+          </div>
+          <button type="button" id="editBasicInfoBtn" class="sub-btn small-btn">기본정보 수정</button>
+        </section>
+
+        <section class="form-section evaluation-form-section">
+          <div class="section-title-row">
+            <span class="round-number">2</span>
+            <div>
+              <h2>평가 작성</h2>
+              <p class="section-guide">기준을 확인한 뒤 항목별로 상/중/하만 선택해주세요. 필요한 사진은 각 항목에서 바로 첨부합니다.</p>
+            </div>
+          </div>
+          <div id="evaluationItems" class="check-list"></div>
+        </section>
+
+        <section class="form-section signature-section">
+          <div class="section-title-row">
+            <span class="round-number">3</span>
+            <div>
+              <h2>서명 후 제출</h2>
+              <p class="section-guide">제출 전 아래 서명란에 직접 서명해주세요. 서명 이미지는 DB에 사진 링크로 저장됩니다.</p>
+            </div>
+          </div>
+
+          <div class="signature-pad-wrap">
+            <canvas id="signaturePad" class="signature-pad" aria-label="서명란"></canvas>
+            <div class="signature-placeholder">이곳에 손가락으로 서명해주세요</div>
+          </div>
+          <div class="signature-actions">
+            <button type="button" class="sub-btn" id="clearSignatureBtn">서명 지우기</button>
+          </div>
+        </section>
+
+        <button type="submit" id="submitBtn" class="submit-btn">반기평가 제출하기</button>
+        <div id="resultMessage" class="result" aria-live="polite"></div>
+      </div>
+    </form>
+    </section>
     </main>
+
+
   </div>
+
 
   <div id="patrolSearchModal" class="patrol-popup-modal" hidden>
     <div class="patrol-popup-backdrop" data-patrol-search-close></div>
@@ -312,7 +490,6 @@
         </div>
         <button type="button" class="modal-close" data-patrol-search-close>닫기</button>
       </div>
-
       <div class="patrol-past-search-modal-body">
         <div class="grid soft-grid">
           <label>
@@ -328,9 +505,7 @@
             <select id="patrolSearchWeek"></select>
           </label>
         </div>
-
         <button type="button" class="sub-btn patrol-query-btn" id="patrolPastSearchBtn">선택 주차 조회하기</button>
-
         <div class="patrol-recent-history-box">
           <div class="patrol-recent-history-head">
             <strong>최근 점검이력</strong>
@@ -363,7 +538,7 @@
     <div class="loading-card">
       <div class="spinner" aria-hidden="true"></div>
       <h2 id="loadingTitle">자료를 불러오는 중입니다</h2>
-      <p id="loadingText">자료를 처리 중입니다. 창을 닫지 말고 잠시만 기다려주세요.</p>
+      <p id="loadingText">사진을 압축하고 자료를 저장 중입니다. 창을 닫지 말고 잠시만 기다려주세요.</p>
     </div>
   </div>
 
@@ -379,6 +554,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=20260608_v40"></script>
+  <script src="script.js?v=20260608_v41"></script>
 </body>
 </html>
