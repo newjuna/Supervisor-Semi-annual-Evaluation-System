@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwRDptkGQyCLnZ8Rn_0F9KD72QkJNZCwqUgEMPHmTD5yPc3p8eV3_zWD-_jDofLvT1W/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const IMAGE_COMPRESSION_CONFIG = {
   targetDataUrlLength: 260000,
   maxDataUrlLength: 360000,
@@ -4121,6 +4121,13 @@ function prefillFirstAppointmentStoreRow() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // 기존 v33 함수 재정의: 선임 화면에 선택한 매장만 자동 반영하고, 이름/사번도 가능한 경우 채움
+  const originalPrefill = window.prefillFirstAppointmentStoreRow;
+  window.prefillFirstAppointmentStoreRow = function () {
+    try { if (typeof originalPrefill === 'function') originalPrefill(); } catch(e) {}
+    patchAppointmentFormDefaults();
+  };
+
   async function handleV34DeappointmentSubmit() {
     if (!selectedGlobalContext || !selectedGlobalContext.supervisorName || !selectedGlobalContext.employeeId) {
       await showSubmitModal({ type: 'error', title: '해임 대상 없음', html: '현재 선택한 매장에 해임할 관리감독자가 없습니다.', confirmText: '확인' });
@@ -4174,4 +4181,279 @@ function prefillFirstAppointmentStoreRow() {
       await showSubmitModal({ type: 'error', title: '해임 신고 실패', html: escapeHtml(err.message || String(err)), confirmText: '확인' });
     }
   }
+})();
+
+/* =========================================================
+   v35 선임/해임 화면 구조 개선
+   - 선임/해임 진입 시 선임현황 리스트 먼저 표시
+   - 현재 선임된 매장은 신규 선임 폼에 자동 추가하지 않음
+   - 선임현황에서 바로 해임 신고 가능
+   ========================================================= */
+(function () {
+  function $(id) { return document.getElementById(id); }
+  var v35Ready = false;
+
+  window.addEventListener('DOMContentLoaded', function () {
+    setTimeout(initV35AppointmentUx, 40);
+    setTimeout(initV35AppointmentUx, 600);
+  });
+
+  function initV35AppointmentUx() {
+    if (v35Ready) return;
+    var module = $('appointmentModule');
+    var form = $('appointmentForm');
+    if (!module || !form) return;
+    v35Ready = true;
+
+    document.body.classList.add('v35-appointment-flow');
+    hideV34AppointmentTabs();
+    installV35AppointmentTabs(module, form);
+    patchV35AppointmentOpen();
+    patchV35AppointmentTexts();
+    showV35AppointmentStatus();
+  }
+
+  function patchV35AppointmentTexts() {
+    var addBtn = $('addAppointmentStoreBtn');
+    if (addBtn) addBtn.textContent = '+ 신규 매장 추가하기';
+    var section = document.querySelector('.appointment-store-section .section-title-row h2');
+    if (section) section.textContent = '신규 선임 매장 추가';
+    var guide = document.querySelector('.appointment-store-section .section-title-row .section-guide');
+    if (guide) guide.textContent = '이미 선임된 기존 매장은 자동으로 추가하지 않습니다. 새로 선임할 매장만 추가하세요.';
+    var personGuide = document.querySelector('#appointmentForm .basic-info-section .section-guide');
+    if (personGuide) personGuide.textContent = '신규 선임할 관리감독자의 성명과 사번을 확인해주세요.';
+  }
+
+  function hideV34AppointmentTabs() {
+    var old = $('v34AppointmentModeTabs');
+    if (old) old.hidden = true;
+    var oldDePane = $('v34DeappointPane');
+    if (oldDePane) oldDePane.hidden = true;
+  }
+
+  function installV35AppointmentTabs(module, form) {
+    if ($('v35AppointmentTabs')) return;
+    var tabs = document.createElement('div');
+    tabs.id = 'v35AppointmentTabs';
+    tabs.className = 'v35-mode-tabs no-print';
+    tabs.innerHTML = '' +
+      '<button type="button" class="v35-mode-tab active" data-v35-appt-mode="status">선임현황</button>' +
+      '<button type="button" class="v35-mode-tab" data-v35-appt-mode="appoint">신규 선임</button>';
+
+    var statusPane = document.createElement('section');
+    statusPane.id = 'v35AppointmentStatusPane';
+    statusPane.className = 'card v35-status-pane';
+    statusPane.innerHTML = '' +
+      '<div class="v35-status-head">' +
+        '<div><h2>선임현황</h2><p>첫 화면에서 선택한 관리감독자가 현재 선임된 매장을 확인합니다.</p></div>' +
+        '<button type="button" class="sub-btn small-btn" id="v35RefreshAppointmentStatusBtn">새로고침</button>' +
+      '</div>' +
+      '<div id="v35AppointmentStatusList" class="v35-status-list"><div class="inline-message pending">선임현황을 불러오는 중입니다...</div></div>' +
+      '<div class="v35-status-actions"><button type="button" class="submit-btn secondary-start" id="v35GoNewAppointmentBtn">+ 신규 매장 선임하기</button></div>';
+
+    module.insertBefore(tabs, form);
+    module.insertBefore(statusPane, form);
+
+    tabs.querySelectorAll('[data-v35-appt-mode]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (btn.getAttribute('data-v35-appt-mode') === 'status') showV35AppointmentStatus();
+        else showV35NewAppointment();
+      });
+    });
+
+    var refreshBtn = $('v35RefreshAppointmentStatusBtn');
+    if (refreshBtn) refreshBtn.addEventListener('click', loadV35AppointmentStatus);
+    var goNew = $('v35GoNewAppointmentBtn');
+    if (goNew) goNew.addEventListener('click', showV35NewAppointment);
+  }
+
+  function patchV35AppointmentOpen() {
+    if (window.__v35SwitchAppointmentPatched) return;
+    window.__v35SwitchAppointmentPatched = true;
+    var previousSwitch = window.switchToAppointmentModule;
+    window.switchToAppointmentModule = function () {
+      if (typeof previousSwitch === 'function') previousSwitch();
+      setTimeout(function () {
+        hideV34AppointmentTabs();
+        installV35AppointmentTabs($('appointmentModule'), $('appointmentForm'));
+        patchV35AppointmentTexts();
+        showV35AppointmentStatus();
+      }, 40);
+    };
+  }
+
+  function setV35Tab(mode) {
+    document.querySelectorAll('[data-v35-appt-mode]').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-v35-appt-mode') === mode);
+    });
+  }
+
+  function showV35AppointmentStatus() {
+    var form = $('appointmentForm');
+    var statusPane = $('v35AppointmentStatusPane');
+    var success = $('appointmentSuccessArea');
+    var oldDePane = $('v34DeappointPane');
+    setV35Tab('status');
+    if (form) form.hidden = true;
+    if (success) success.hidden = true;
+    if (oldDePane) oldDePane.hidden = true;
+    if (statusPane) statusPane.hidden = false;
+    loadV35AppointmentStatus();
+  }
+
+  function showV35NewAppointment() {
+    var form = $('appointmentForm');
+    var statusPane = $('v35AppointmentStatusPane');
+    var success = $('appointmentSuccessArea');
+    var oldDePane = $('v34DeappointPane');
+    setV35Tab('appoint');
+    if (statusPane) statusPane.hidden = true;
+    if (success) success.hidden = true;
+    if (oldDePane) oldDePane.hidden = true;
+    if (form) form.hidden = false;
+    prepareV35NewAppointmentForm();
+  }
+
+  function prepareV35NewAppointmentForm() {
+    var list = $('appointmentStoreList');
+    var nameInput = $('appointmentName');
+    var empInput = $('appointmentEmployeeIdInput');
+    var empFull = $('appointmentEmployeeIdFull');
+    if (selectedGlobalContext && selectedGlobalContext.supervisorName && nameInput && !nameInput.value) {
+      nameInput.value = selectedGlobalContext.supervisorName;
+    }
+    if (selectedGlobalContext && selectedGlobalContext.employeeId && empInput && !empInput.value) {
+      var digits = String(selectedGlobalContext.employeeId || '').replace(/^AD/i, '').replace(/\D/g, '');
+      empInput.value = digits;
+      if (empFull) empFull.value = digits ? 'AD' + digits : '';
+    }
+    // 핵심: 기존 선택 매장은 이미 선임된 매장이므로 신규 선임 폼에는 자동으로 넣지 않는다.
+    if (list && list.dataset.v35Cleared !== '1') {
+      list.innerHTML = '<div class="v35-empty-store-guide">신규로 추가 선임할 매장이 있으면 아래 <strong>신규 매장 추가하기</strong> 버튼을 눌러 선택하세요.</div>';
+      list.dataset.v35Cleared = '1';
+    }
+  }
+
+  function getV35SelectedEmployeeId() {
+    if (selectedGlobalContext && selectedGlobalContext.employeeId) return selectedGlobalContext.employeeId;
+    var input = $('appointmentEmployeeIdInput');
+    if (!input) return '';
+    var digits = String(input.value || '').replace(/\D/g, '');
+    return digits ? 'AD' + digits : '';
+  }
+
+  async function loadV35AppointmentStatus() {
+    var list = $('v35AppointmentStatusList');
+    if (!list) return;
+    if (!selectedGlobalContext) {
+      list.innerHTML = '<div class="appointed-empty">먼저 조직과 관리감독자를 선택해주세요.</div>';
+      return;
+    }
+    list.innerHTML = '<div class="inline-message pending">선임현황을 불러오는 중입니다...</div>';
+
+    var employeeId = getV35SelectedEmployeeId();
+    var storeName = selectedGlobalContext.storeName || '';
+    try {
+      var data;
+      if (employeeId) {
+        data = await jsonpRequest({ mode: 'appointmentPersonList', employeeId: employeeId }, 20000);
+      } else {
+        data = await jsonpRequest({ mode: 'appointmentList', storeName: storeName }, 20000);
+      }
+      renderV35AppointmentStatus((data && data.appointments) || []);
+    } catch (err) {
+      list.innerHTML = '<div class="inline-message error">선임현황을 불러오지 못했습니다.<br>' + escapeHtml(err.message || String(err)) + '</div>';
+    }
+  }
+
+  function renderV35AppointmentStatus(rows) {
+    var list = $('v35AppointmentStatusList');
+    if (!list) return;
+    if (!rows || !rows.length) {
+      list.innerHTML = '' +
+        '<div class="appointed-empty">현재 확인되는 선임 매장이 없습니다.<br>신규 선임이 필요한 경우 <strong>신규 선임</strong>을 눌러 진행하세요.</div>';
+      return;
+    }
+    list.innerHTML = rows.map(function (row, idx) {
+      return '' +
+        '<article class="v35-status-card" data-v35-status-index="' + idx + '">' +
+          '<div class="v35-status-main">' +
+            '<span class="v35-status-chip">선임중</span>' +
+            '<strong>' + escapeHtml(row.storeName || '') + '</strong>' +
+            '<p>' + escapeHtml(row.supervisorName || '') + ' / ' + escapeHtml(row.employeeId || '') + '</p>' +
+            '<em>' + escapeHtml(row.department || '') + ' · ' + escapeHtml(row.team || '') + ' · 선임일 ' + escapeHtml(formatAppointmentDateText(row.appliedAt || '')) + '</em>' +
+          '</div>' +
+          '<button type="button" class="v35-deappoint-card-btn" data-v35-deappoint-index="' + idx + '">해임</button>' +
+        '</article>';
+    }).join('');
+    window.__v35AppointmentRows = rows;
+    list.querySelectorAll('[data-v35-deappoint-index]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var idx = Number(btn.getAttribute('data-v35-deappoint-index'));
+        handleV35Deappointment((window.__v35AppointmentRows || [])[idx]);
+      });
+    });
+  }
+
+  async function handleV35Deappointment(row) {
+    if (!row || !row.storeName || !row.employeeId || !row.supervisorName) {
+      await showSubmitModal({ type: 'error', title: '해임 대상 확인 불가', html: '해임 대상 정보가 부족합니다.', confirmText: '확인' });
+      return;
+    }
+    if (!validateAppsScriptUrl()) return;
+    var ok = await showSubmitModal({
+      type: 'confirm',
+      title: '해임 신고 확인',
+      html: '<div class="modal-info-box">' +
+        '<div><b>매장명</b><span>' + escapeHtml(row.storeName || '') + '</span></div>' +
+        '<div><b>성명</b><span>' + escapeHtml(row.supervisorName || '') + '</span></div>' +
+        '<div><b>사번</b><span>' + escapeHtml(row.employeeId || '') + '</span></div>' +
+        '</div><p class="modal-small-text">해임 신고 후 해당 매장은 신규 선임 전까지 순회점검과 반기평가를 진행할 수 없습니다.</p>',
+      confirmText: '해임 신고',
+      cancelText: '취소'
+    });
+    if (!ok) return;
+    var submissionId = 'DA-' + new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14) + '-' + Math.random().toString(36).slice(2, 8);
+    var payload = {
+      type: 'deappointment',
+      submissionId: submissionId,
+      person: { name: row.supervisorName, employeeId: row.employeeId },
+      store: {
+        headquarter: row.headquarter || row.storeType || (selectedGlobalContext && selectedGlobalContext.headquarter) || '',
+        department: row.department || (selectedGlobalContext && selectedGlobalContext.department) || '',
+        team: row.team || (selectedGlobalContext && selectedGlobalContext.team) || '',
+        storeName: row.storeName || ''
+      },
+      userAgent: navigator.userAgent || ''
+    };
+    try {
+      showLoading(true, '해임 신고를 저장 중입니다.', '해임 신고 중');
+      await postPayloadByHiddenForm(payload);
+      var status = await waitForAppointmentStatus(submissionId);
+      showLoading(false);
+      if (!status || !status.success) throw new Error(status && status.message ? status.message : '해임 신고 확인 실패');
+      await showSubmitModal({ type: 'success', title: '해임 신고 완료', html: '해임 내역이 저장되었습니다.', confirmText: '확인' });
+      if (selectedGlobalContext && normalizeKey(row.storeName) === normalizeKey(selectedGlobalContext.storeName)) {
+        selectedGlobalContext.supervisorName = '';
+        selectedGlobalContext.employeeId = '';
+        selectedGlobalContext.appointment = null;
+        selectedGlobalContext.needsAppointment = true;
+        updateV33TopContext();
+      }
+      loadV35AppointmentStatus();
+    } catch (err) {
+      showLoading(false);
+      await showSubmitModal({ type: 'error', title: '해임 신고 실패', html: escapeHtml(err.message || String(err)), confirmText: '확인' });
+    }
+  }
+
+  // 신규 매장 추가 버튼을 누른 후에는 안내문을 제거한다.
+  document.addEventListener('click', function (event) {
+    var btn = event.target && event.target.closest ? event.target.closest('#addAppointmentStoreBtn') : null;
+    if (!btn) return;
+    var list = $('appointmentStoreList');
+    if (!list) return;
+    var guide = list.querySelector('.v35-empty-store-guide');
+    if (guide) guide.remove();
+  }, true);
 })();

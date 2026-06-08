@@ -4281,3 +4281,135 @@ body.v34-minimal #patrolForm .patrol-items-section .section-guide {
   .v34-current-person-main { display: block; }
   .v34-current-person-main .v34-danger-btn { width: 100%; margin-top: 12px; }
 }
+
+/* =========================================================
+   v35 선임/해임 UX 정리
+   ========================================================= */
+.v35-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.v35-mode-tab {
+  min-height: 52px;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  background: #fff;
+  color: #0D1B36;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.v35-mode-tab.active {
+  background: #0D1B36;
+  border-color: #0D1B36;
+  color: #fff;
+}
+.v35-status-pane {
+  margin-bottom: 16px;
+}
+.v35-status-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.v35-status-head h2 {
+  margin: 0 0 6px;
+  color: #0D1B36;
+  font-size: 22px;
+}
+.v35-status-head p {
+  margin: 0;
+  color: #697386;
+  line-height: 1.55;
+}
+.v35-status-list {
+  display: grid;
+  gap: 10px;
+}
+.v35-status-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #e6e8eb;
+  border-radius: 20px;
+  background: #fff;
+}
+.v35-status-main {
+  min-width: 0;
+}
+.v35-status-chip {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #166534;
+  font-size: 12px;
+  font-weight: 900;
+}
+.v35-status-main strong {
+  display: block;
+  color: #0D1B36;
+  font-size: 18px;
+  line-height: 1.35;
+  word-break: keep-all;
+}
+.v35-status-main p {
+  margin: 5px 0 3px;
+  color: #111827;
+  font-weight: 900;
+}
+.v35-status-main em {
+  display: block;
+  color: #697386;
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1.4;
+}
+.v35-deappoint-card-btn {
+  flex: 0 0 auto;
+  min-width: 72px;
+  min-height: 42px;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fff1f2;
+  color: #b91c1c;
+  font-family: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+.v35-status-actions {
+  margin-top: 14px;
+}
+.v35-empty-store-guide {
+  padding: 15px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.55;
+}
+@media (max-width: 720px) {
+  .v35-status-head {
+    display: block;
+  }
+  .v35-status-head .small-btn {
+    width: 100%;
+    margin-top: 10px;
+  }
+  .v35-status-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .v35-deappoint-card-btn {
+    width: 100%;
+  }
+}
