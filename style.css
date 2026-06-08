@@ -2373,3 +2373,21 @@ textarea:focus {
   .patrol-photo-grid { grid-template-columns: 1fr; }
   .patrol-check-title { min-height: auto; }
 }
+
+
+/* ==============================
+   v28.2 주간 순회점검표 개선
+   ============================== */
+.patrol-item-tool-row { margin-top: 10px; display: grid; grid-template-columns: 1fr; }
+.patrol-example-btn { width: 100%; min-height: 46px; background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+.patrol-insufficient-panel { margin-top: 12px; padding: 14px; border-radius: 18px; border: 1px dashed #fca5a5; background: #fff7f7; }
+.patrol-insufficient-panel[hidden] { display: none !important; }
+.patrol-insufficient-head { display: grid; gap: 4px; margin-bottom: 10px; }
+.patrol-insufficient-head strong { color: #b91c1c; font-size: 15px; }
+.patrol-insufficient-head span { color: #6b7280; font-size: 12px; line-height: 1.45; font-weight: 700; }
+.patrol-insufficient-note { margin-bottom: 10px; }
+.patrol-insufficient-note textarea { margin-top: 8px; min-height: 96px; background: #fff; }
+.patrol-item-photo-picker { display: grid; gap: 8px; }
+.patrol-item-photo-btn { width: 100%; background: #fff; border-color: #e60012; color: #e60012; }
+.patrol-check-item.insufficient .patrol-check-title { color: #b91c1c; }
+@media (max-width: 720px) { .patrol-example-btn, .patrol-item-photo-btn { min-height: 52px; } }

@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZxstPvr3cph2hUqvoTtvWhJ-OeqQtSPZ7PPqH44v6vQHZd306f_fs22MqTrY77VIo/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const IMAGE_COMPRESSION_CONFIG = {
   targetDataUrlLength: 260000,
   maxDataUrlLength: 360000,
@@ -2097,41 +2097,41 @@ function resetFormAfterSuccess() {
 
 
 /* ==============================
-   v28 주간 순회점검표 모듈
+   v28.2 주간 순회점검표 모듈
    - 기존 반기평가/임명 구조 유지
    - 주간 순회점검표 작성 + 지연 제출 판정 + 사진 가점용 데이터 저장
    ============================== */
 const PATROL_ITEMS = [
-  { id: 'p09', no: 9, category: '집기', title: '매장입구 행사매대 고정장치' },
-  { id: 'p10', no: 10, category: '집기', title: '롤링바스켓 POP 부착·적재높이 관리' },
-  { id: 'p11', no: 11, category: '바닥', title: '매장 바닥 청결 상태' },
-  { id: 'p12', no: 12, category: '바닥', title: '바닥 타일·신주커버 파손 및 노후' },
-  { id: 'p14', no: 14, category: '천장', title: '등기구 조명상태' },
-  { id: 'p22', no: 22, category: '매대', title: '파손우려상품 상품/포장 파손 여부' },
-  { id: 'p29', no: 29, category: 'POP', title: '상품추락주의 POP 부착' },
-  { id: 'p30', no: 30, category: 'POP', title: '상품파손주의 POP 부착' },
-  { id: 'p38', no: 38, category: '집기', title: '보조집기·행사매대·스티커매대 관리' },
-  { id: 'p39', no: 39, category: '부자재', title: '진열부자재 파손·문제점' },
-  { id: 'p40', no: 40, category: '부자재', title: '곤도라/벽면 매대 하부서랍장 위험요인' },
-  { id: 'p42', no: 42, category: '비품', title: '라인용 마스킹테이프 및 박스 적재 기준' },
-  { id: 'p43', no: 43, category: '비품', title: '모서리보호대 부착' },
-  { id: 'p44', no: 44, category: '비품', title: '사다리 활용 및 보관상태' },
-  { id: 'p49', no: 49, category: '소방', title: '방화문·방화셔터 작동구간 적재물' },
-  { id: 'p52', no: 52, category: 'POP', title: '매장/엘리베이터 홍보 게시물 부착' },
-  { id: 'p54', no: 54, category: '기타', title: '조명집기 하부 및 전선/콘센트 청소' },
-  { id: 'p56', no: 56, category: '기타', title: '유리·거울 파손 여부' },
-  { id: 'p58', no: 58, category: '출입구', title: '백룸 이동통로 단차 및 방해요소' },
-  { id: 'p59', no: 59, category: 'POP', title: '백룸 포스터 관리' },
-  { id: 'p60', no: 60, category: '재고', title: '창고 관리기준 준수' },
-  { id: 'p63', no: 63, category: '소방', title: '백룸 적재박스 스프링클러 간섭' },
-  { id: 'p64', no: 64, category: '비품', title: '운반도구 L카·롤테이너 사용/관리' },
-  { id: 'p68', no: 68, category: '게시판', title: '사무실/휴게실 필수 부착물' },
-  { id: 'p74', no: 74, category: '게시판', title: '안전관련 일지 작성' },
-  { id: 'p75', no: 75, category: '게시판', title: '위험성평가 기록 관리' },
-  { id: 'p76', no: 76, category: '게시판', title: '비상대응훈련 기록 관리' },
-  { id: 'p77', no: 77, category: '게시판', title: 'TBM 회의록 및 서명록' },
-  { id: 'p82', no: 82, category: '비품', title: '본사 규정 멀티탭 사용' },
-  { id: 'p101', no: 101, category: '비품', title: '직원용 안전칼 사용' }
+  { id: 'p09', no: 9, category: '집기', title: '매장입구 행사매대 고정장치', exampleSrc: 'assets/patrol_examples/p09.jpg' },
+  { id: 'p10', no: 10, category: '집기', title: '롤링바스켓 POP 부착·적재높이 관리', exampleSrc: 'assets/patrol_examples/p10.jpg' },
+  { id: 'p11', no: 11, category: '바닥', title: '매장 바닥 청결 상태', exampleSrc: 'assets/patrol_examples/p11.jpg' },
+  { id: 'p12', no: 12, category: '바닥', title: '바닥 타일·신주커버 파손 및 노후', exampleSrc: 'assets/patrol_examples/p12.jpg' },
+  { id: 'p14', no: 14, category: '천장', title: '등기구 조명상태', exampleSrc: 'assets/patrol_examples/p14.jpg' },
+  { id: 'p22', no: 22, category: '매대', title: '파손우려상품 상품/포장 파손 여부', exampleSrc: 'assets/patrol_examples/p22.jpg' },
+  { id: 'p29', no: 29, category: 'POP', title: '상품추락주의 POP 부착', exampleSrc: 'assets/patrol_examples/p29.jpg' },
+  { id: 'p30', no: 30, category: 'POP', title: '상품파손주의 POP 부착', exampleSrc: 'assets/patrol_examples/p30.jpg' },
+  { id: 'p38', no: 38, category: '집기', title: '보조집기·행사매대·스티커매대 관리', exampleSrc: 'assets/patrol_examples/p38.jpg' },
+  { id: 'p39', no: 39, category: '부자재', title: '진열부자재 파손·문제점', exampleSrc: 'assets/patrol_examples/p39.jpg' },
+  { id: 'p40', no: 40, category: '부자재', title: '곤도라/벽면 매대 하부서랍장 위험요인', exampleSrc: 'assets/patrol_examples/p40.jpg' },
+  { id: 'p42', no: 42, category: '비품', title: '라인용 마스킹테이프 및 박스 적재 기준', exampleSrc: 'assets/patrol_examples/p42.jpg' },
+  { id: 'p43', no: 43, category: '비품', title: '모서리보호대 부착', exampleSrc: 'assets/patrol_examples/p43.jpg' },
+  { id: 'p44', no: 44, category: '비품', title: '사다리 활용 및 보관상태', exampleSrc: 'assets/patrol_examples/p44.jpg' },
+  { id: 'p49', no: 49, category: '소방', title: '방화문·방화셔터 작동구간 적재물', exampleSrc: 'assets/patrol_examples/p49.jpg' },
+  { id: 'p52', no: 52, category: 'POP', title: '매장/엘리베이터 홍보 게시물 부착', exampleSrc: 'assets/patrol_examples/p52.jpg' },
+  { id: 'p54', no: 54, category: '기타', title: '조명집기 하부 및 전선/콘센트 청소', exampleSrc: 'assets/patrol_examples/p54.jpg' },
+  { id: 'p56', no: 56, category: '기타', title: '유리·거울 파손 여부', exampleSrc: 'assets/patrol_examples/p56.jpg' },
+  { id: 'p58', no: 58, category: '출입구', title: '백룸 이동통로 단차 및 방해요소', exampleSrc: 'assets/patrol_examples/p58.jpg' },
+  { id: 'p59', no: 59, category: 'POP', title: '백룸 포스터 관리', exampleSrc: 'assets/patrol_examples/p59.jpg' },
+  { id: 'p60', no: 60, category: '재고', title: '창고 관리기준 준수', exampleSrc: 'assets/patrol_examples/p60.jpg' },
+  { id: 'p63', no: 63, category: '소방', title: '백룸 적재박스 스프링클러 간섭', exampleSrc: 'assets/patrol_examples/p63.jpg' },
+  { id: 'p64', no: 64, category: '비품', title: '운반도구 L카·롤테이너 사용/관리', exampleSrc: 'assets/patrol_examples/p64.jpg' },
+  { id: 'p68', no: 68, category: '게시판', title: '사무실/휴게실 필수 부착물', exampleSrc: 'assets/patrol_examples/p68.jpg' },
+  { id: 'p74', no: 74, category: '게시판', title: '안전관련 일지 작성', exampleSrc: 'assets/patrol_examples/p74.jpg' },
+  { id: 'p75', no: 75, category: '게시판', title: '위험성평가 기록 관리', exampleSrc: 'assets/patrol_examples/p75.jpg' },
+  { id: 'p76', no: 76, category: '게시판', title: '비상대응훈련 기록 관리', exampleSrc: 'assets/patrol_examples/p76.jpg' },
+  { id: 'p77', no: 77, category: '게시판', title: 'TBM 회의록 및 서명록', exampleSrc: 'assets/patrol_examples/p77.jpg' },
+  { id: 'p82', no: 82, category: '비품', title: '본사 규정 멀티탭 사용', exampleSrc: 'assets/patrol_examples/p82.jpg' },
+  { id: 'p101', no: 101, category: '비품', title: '직원용 안전칼 사용', exampleSrc: 'assets/patrol_examples/p101.jpg' }
 ];
 
 let patrolSelectedAppointment = null;
@@ -2280,17 +2280,32 @@ function renderPatrolItems() {
   const container = document.getElementById('patrolItemsContainer');
   if (!container) return;
   container.innerHTML = PATROL_ITEMS.map(function (item) {
+    const photoField = 'patrol_photo_' + item.id;
+    const noteId = 'patrol_note_' + item.id;
     return '<div class="patrol-check-item" data-patrol-item-card="' + item.id + '">' +
-      '<span class="patrol-check-meta">' + item.category + ' · ' + item.no + '번</span>' +
+      '<span class="patrol-check-meta">' + escapeHtml(item.category) + ' · ' + item.no + '번</span>' +
       '<div class="patrol-check-title">' + escapeHtml(item.title) + '</div>' +
       '<div class="patrol-result-buttons" role="radiogroup" aria-label="' + escapeHtml(item.title) + '">' +
       '<label><input type="radio" name="' + item.id + '_result" value="양호" checked />양호</label>' +
       '<label><input type="radio" name="' + item.id + '_result" value="미흡" />미흡</label>' +
       '<label><input type="radio" name="' + item.id + '_result" value="해당없음" />해당없음</label>' +
       '</div>' +
+      '<div class="patrol-item-tool-row">' +
+        '<button type="button" class="example-btn patrol-example-btn" data-example-src="' + escapeHtml(item.exampleSrc || '') + '" data-example-title="' + escapeHtml(item.no + '번 항목 예시') + '" data-example-caption="' + escapeHtml(item.title + ' PDF 예시와 점검기준입니다.') + '">📒 항목 예시</button>' +
+      '</div>' +
+      '<div class="patrol-insufficient-panel" data-patrol-insufficient-panel="' + item.id + '" hidden>' +
+        '<div class="patrol-insufficient-head"><strong>미흡사항 작성</strong><span>미흡 선택 시 사진과 내용을 필수로 남겨주세요.</span></div>' +
+        '<label class="patrol-insufficient-note">미흡사항 내용 <span class="required-mark">*</span>' +
+          '<textarea id="' + noteId + '" data-patrol-item-note="' + item.id + '" rows="3" maxlength="300" placeholder="예: 멀티탭 전선 피복 손상 확인, 사용 중지 후 교체 요청"></textarea>' +
+        '</label>' +
+        '<div class="patrol-item-photo-picker">' +
+          '<input class="file-input-hidden" id="' + photoField + '_file" type="file" accept="image/*" multiple data-patrol-file="' + photoField + '" />' +
+          '<label class="photo-btn attach patrol-item-photo-btn" for="' + photoField + '_file">📎 미흡사항 사진 첨부</label>' +
+          '<div id="' + photoField + '_preview" class="preview-row"><span data-patrol-preview="' + photoField + '"></span><button type="button" class="clear-file-btn" data-clear-patrol-file="' + photoField + '">삭제</button></div>' +
+        '</div>' +
+      '</div>' +
       '</div>';
   }).join('');
-
   PATROL_ITEMS.forEach(function (item) {
     document.querySelectorAll('input[name="' + item.id + '_result"]').forEach(function (radio) {
       radio.addEventListener('change', function () { applyPatrolItemState(item.id); });
@@ -2302,7 +2317,10 @@ function renderPatrolItems() {
 function applyPatrolItemState(itemId) {
   const checked = document.querySelector('input[name="' + itemId + '_result"]:checked');
   const card = document.querySelector('[data-patrol-item-card="' + itemId + '"]');
-  if (card) card.classList.toggle('insufficient', checked && checked.value === '미흡');
+  const panel = document.querySelector('[data-patrol-insufficient-panel="' + itemId + '"]');
+  const isInsufficient = !!(checked && checked.value === '미흡');
+  if (card) card.classList.toggle('insufficient', isInsufficient);
+  if (panel) panel.hidden = !isInsufficient;
 }
 
 function bindPatrolOrgSelects() {
@@ -2652,6 +2670,26 @@ function validatePatrolBasic() {
     if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return false;
   }
+  for (const item of PATROL_ITEMS) {
+    const checked = document.querySelector('input[name="' + item.id + '_result"]:checked');
+    if (checked && checked.value === '미흡') {
+      const note = document.getElementById('patrol_note_' + item.id);
+      const files = patrolSelectedFiles['patrol_photo_' + item.id] || [];
+      if (!note || !String(note.value || '').trim()) {
+        setPatrolResult('error', item.no + '번 ' + item.title + ' 항목의 미흡사항 내용을 입력해주세요.');
+        const panel = document.querySelector('[data-patrol-insufficient-panel="' + item.id + '"]');
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (note && note.focus) note.focus();
+        return false;
+      }
+      if (!files.length) {
+        setPatrolResult('error', item.no + '번 ' + item.title + ' 항목의 미흡사항 사진을 첨부해주세요.');
+        const panel = document.querySelector('[data-patrol-insufficient-panel="' + item.id + '"]');
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return false;
+      }
+    }
+  }
   if (!patrolHasSignature) {
     setPatrolResult('error', '제출 전 서명란에 서명해주세요.');
     const wrap = document.querySelector('.patrol-signature-wrap');
@@ -2659,6 +2697,19 @@ function validatePatrolBasic() {
     return false;
   }
   return true;
+}
+
+function getPatrolInsufficientCount() {
+  return PATROL_ITEMS.filter(function (item) {
+    const checked = document.querySelector('input[name="' + item.id + '_result"]:checked');
+    return checked && checked.value === '미흡';
+  }).length;
+}
+
+function getPatrolItemPhotoCount() {
+  return PATROL_ITEMS.reduce(function (sum, item) {
+    return sum + ((patrolSelectedFiles['patrol_photo_' + item.id] || []).length);
+  }, 0);
 }
 
 async function handlePatrolSubmit(event) {
@@ -2677,7 +2728,9 @@ async function handlePatrolSubmit(event) {
       '<div><b>매장명</b><span>' + escapeHtml(basic.storeName) + '</span></div>' +
       '<div><b>성명</b><span>' + escapeHtml(basic.supervisorName) + '</span></div>' +
       '<div><b>사번</b><span>' + escapeHtml(basic.employeeId) + '</span></div>' +
-      '</div><p class="modal-small-text">동일 주차는 1회만 제출할 수 있습니다. 정보가 다르면 취소 후 수정해주세요.</p>',
+      '<div><b>미흡항목</b><span>' + getPatrolInsufficientCount() + '개</span></div>' +
+      '<div><b>미흡사진</b><span>' + getPatrolItemPhotoCount() + '장</span></div>' +
+      '</div><p class="modal-small-text">미흡 항목은 사진과 내용이 함께 저장됩니다. 동일 주차는 1회만 제출할 수 있습니다.</p>',
     confirmText: '확인 후 제출',
     cancelText: '수정하기'
   });
@@ -2717,69 +2770,26 @@ async function buildPatrolPayload() {
   const submissionId = 'PT-' + new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14) + '-' + Math.random().toString(36).slice(2, 10);
   const items = PATROL_ITEMS.map(function (item) {
     const checked = document.querySelector('input[name="' + item.id + '_result"]:checked');
-    return {
-      id: item.id,
-      no: item.no,
-      category: item.category,
-      title: item.title,
-      result: checked ? checked.value : '양호'
-    };
+    const noteEl = document.getElementById('patrol_note_' + item.id);
+    const photoField = 'patrol_photo_' + item.id;
+    return { id: item.id, no: item.no, category: item.category, title: item.title, result: checked ? checked.value : '양호', note: noteEl ? normalizeText(noteEl.value || '') : '', photoField: photoField, photoCount: (patrolSelectedFiles[photoField] || []).length };
   });
   const attachments = await collectPatrolAttachments(submissionId);
-  attachments.push({
-    field: 'patrol_signature',
-    label: '주간순회점검 제출자 전자서명',
-    hasFile: true,
-    originalName: 'patrol_signature.jpg',
-    fileName: submissionId + '_patrol_signature.jpg',
-    mimeType: 'image/jpeg',
-    size: getPatrolSignatureDataUrl().length,
-    dataUrl: getPatrolSignatureDataUrl()
-  });
-  return {
-    type: 'weeklyPatrol',
-    submissionId: submissionId,
-    submittedAtClient: new Date().toISOString(),
-    userAgent: navigator.userAgent || '',
-    basic: getPatrolBasicInfo(),
-    week: patrolWeekInfo || getCurrentPatrolWeekInfo(),
-    items: items,
-    note: document.getElementById('patrolNoteInput') ? document.getElementById('patrolNoteInput').value : '',
-    attachments: attachments
-  };
+  attachments.push({ field: 'patrol_signature', label: '주간순회점검 제출자 전자서명', hasFile: true, originalName: 'patrol_signature.jpg', fileName: submissionId + '_patrol_signature.jpg', mimeType: 'image/jpeg', size: getPatrolSignatureDataUrl().length, dataUrl: getPatrolSignatureDataUrl() });
+  return { type: 'weeklyPatrol', submissionId: submissionId, submittedAtClient: new Date().toISOString(), userAgent: navigator.userAgent || '', basic: getPatrolBasicInfo(), week: patrolWeekInfo || getCurrentPatrolWeekInfo(), items: items, attachments: attachments };
 }
 
 async function collectPatrolAttachments(submissionId) {
-  const fields = [
-    { name: 'patrol_photos', label: '주간순회점검 일반 사진' },
-    { name: 'patrol_before_photos', label: '개선 전 사진' },
-    { name: 'patrol_after_photos', label: '개선 후 사진' }
-  ];
+  const fields = PATROL_ITEMS.map(function (item) { return { name: 'patrol_photo_' + item.id, label: item.no + '번 미흡사항 사진 - ' + item.title }; });
   const attachments = [];
   for (const field of fields) {
     const files = patrolSelectedFiles[field.name] || [];
-    if (!files.length) {
-      attachments.push({ field: field.name, label: field.label, hasFile: false });
-      continue;
-    }
+    if (!files.length) { attachments.push({ field: field.name, label: field.label, hasFile: false }); continue; }
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const processed = await processImageFile(file);
       const suffix = files.length > 1 ? '_' + (i + 1) : '';
-      attachments.push({
-        field: field.name,
-        label: field.label + (files.length > 1 ? ' ' + (i + 1) + '/' + files.length : ''),
-        hasFile: true,
-        fileIndex: i + 1,
-        fileCount: files.length,
-        originalName: file.name,
-        fileName: submissionId + '_' + field.name + suffix + '_' + sanitizeFileName(file.name),
-        mimeType: processed.mimeType,
-        size: processed.size,
-        originalSize: processed.originalSize || file.size || 0,
-        compressed: !!processed.compressed,
-        dataUrl: processed.dataUrl
-      });
+      attachments.push({ field: field.name, label: field.label + (files.length > 1 ? ' ' + (i + 1) + '/' + files.length : ''), hasFile: true, fileIndex: i + 1, fileCount: files.length, originalName: file.name, fileName: submissionId + '_' + field.name + suffix + '_' + sanitizeFileName(file.name), mimeType: processed.mimeType, size: processed.size, originalSize: processed.originalSize || file.size || 0, compressed: !!processed.compressed, dataUrl: processed.dataUrl });
     }
   }
   return attachments;
@@ -2822,12 +2832,9 @@ function resetPatrolFormAfterSuccess() {
   if (formEl) formEl.reset();
   patrolSelectedFiles = {};
   document.querySelectorAll('[data-patrol-preview]').forEach(function (span) { span.textContent = ''; });
-  document.querySelectorAll('.patrol-photo-section .preview-row').forEach(function (row) { row.classList.remove('active'); });
-  PATROL_ITEMS.forEach(function (item) {
-    const good = document.querySelector('input[name="' + item.id + '_result"][value="양호"]');
-    if (good) good.checked = true;
-    applyPatrolItemState(item.id);
-  });
+  document.querySelectorAll('#patrolModule .preview-row').forEach(function (row) { row.classList.remove('active'); });
+  document.querySelectorAll('[data-patrol-item-note]').forEach(function (textarea) { textarea.value = ''; });
+  PATROL_ITEMS.forEach(function (item) { const good = document.querySelector('input[name="' + item.id + '_result"][value="양호"]'); if (good) good.checked = true; applyPatrolItemState(item.id); });
   clearPatrolSignature();
   clearPatrolAppointment();
   populatePatrolHeadquarters();
