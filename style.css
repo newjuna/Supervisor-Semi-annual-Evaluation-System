@@ -4607,3 +4607,64 @@ body.v39-login-flow .drawer-nav-btn[data-nav-module="home"]{display:none!importa
   .v39-store-btn{align-items:flex-start;flex-direction:column;}
   .v39-store-btn em{align-self:flex-end;}
 }
+
+
+/* =========================================================
+   v40 본인확인 화면 정렬 보완
+   - 모바일 기준으로 입력칸을 세로 정렬
+   - 사번/성명/조회 버튼이 어긋나지 않도록 고정
+   ========================================================= */
+.v39-login-card.v40-login-card,
+.v39-login-card {
+  max-width: 920px;
+}
+.v39-login-form {
+  grid-template-columns: 1fr !important;
+  align-items: stretch !important;
+  max-width: 760px;
+  margin-left: 0;
+  margin-right: auto;
+  gap: 18px !important;
+}
+.v39-login-form label {
+  width: 100%;
+}
+.v39-login-form .employee-id-wrap {
+  margin-top: 0;
+}
+.v39-login-form input,
+.v39-login-form .employee-prefix {
+  height: 58px;
+}
+.v39-login-btn {
+  width: 100%;
+  max-width: 360px;
+  justify-self: start;
+}
+.v39-login-result.pending,
+.v39-login-result.error,
+.v39-login-result.success {
+  max-width: 760px;
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+.v39-login-result.pending { background:#f8fbff; border:1px solid #dbeafe; color:#1e3a5f; }
+.v39-login-result.error { background:#fff5f5; border:1px solid #fecaca; color:#b91c1c; }
+.v39-login-result.success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; }
+.v40-input-row-note {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 700;
+}
+@media (min-width: 860px) {
+  .v39-login-card { padding-left: 34px; padding-right: 34px; }
+  .v39-login-head { max-width: 760px; }
+}
+@media (max-width: 720px) {
+  .v39-login-card { padding: 24px 18px !important; }
+  .v39-login-head h1 { font-size: 34px !important; }
+  .v39-login-form { padding: 16px !important; }
+  .v39-login-btn { max-width: none; }
+}

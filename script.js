@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxdfvjQFmCiKkkV3QuQT2D6FTpKM4Yt-7catMU7vWxfcyOtt6SceAba0hsrnUxNTzJR/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const IMAGE_COMPRESSION_CONFIG = {
   targetDataUrlLength: 260000,
   maxDataUrlLength: 360000,
@@ -5070,4 +5070,182 @@ function prefillFirstAppointmentStoreRow() {
       setTimeout(function () { showLoading(false); }, 4000);
     }
   }
+})();
+
+
+/* =========================================================
+   v40 본인확인 안정화 패치
+   - 조회하기 클릭 즉시 메시지 표시
+   - 기존 이벤트가 늦게 붙거나 Apps Script URL이 누락되어도 화면에 원인 표시
+   - 사번+성명 조회 결과를 선임 매장 리스트로 바로 표시
+   ========================================================= */
+(function () {
+  function $(id) { return document.getElementById(id); }
+  function esc(v) {
+    if (typeof escapeHtml === 'function') return escapeHtml(v);
+    return String(v == null ? '' : v).replace(/[&<>"]/g, function (m) {
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[m];
+    });
+  }
+  function compact(v) { return String(v || '').trim().replace(/\s+/g, '').toLowerCase(); }
+  function fullEmployeeId() {
+    var emp = $('loginEmployeeIdInput');
+    var digits = emp ? String(emp.value || '').replace(/\D/g, '') : '';
+    return digits ? 'AD' + digits : '';
+  }
+  function nameValue() {
+    var n = $('loginNameInput');
+    if (typeof normalizeText === 'function') return normalizeText(n ? n.value : '');
+    return String(n ? n.value : '').trim();
+  }
+  function setLoginMessage(type, html) {
+    var msg = $('loginResultMessage');
+    if (!msg) return;
+    msg.className = 'result v39-login-result ' + (type || '');
+    msg.innerHTML = html || '';
+  }
+  function resetCards() {
+    var store = $('loginStoreResultCard');
+    var none = $('loginNoAppointmentCard');
+    if (store) store.hidden = true;
+    if (none) none.hidden = true;
+  }
+  function setLookupButtonLoading(on) {
+    var btn = $('loginLookupBtn');
+    if (!btn) return;
+    btn.disabled = !!on;
+    btn.classList.toggle('is-loading', !!on);
+    btn.textContent = on ? '조회 중...' : '조회하기';
+  }
+  function appsUrlReady() {
+    try {
+      return typeof APPS_SCRIPT_URL === 'string' && APPS_SCRIPT_URL.indexOf('https://script.google.com/macros/s/') === 0;
+    } catch (e) {
+      return false;
+    }
+  }
+  function showNoAppointment(name, employeeId) {
+    var store = $('loginStoreResultCard');
+    var none = $('loginNoAppointmentCard');
+    if (store) store.hidden = true;
+    if (none) none.hidden = false;
+    if (typeof selectedGlobalContext !== 'undefined') {
+      selectedGlobalContext = {
+        headquarter: '', department: '', team: '', storeName: '',
+        supervisorName: name, employeeId: employeeId,
+        appointment: null, needsAppointment: true
+      };
+    }
+    try { if (typeof applySelectedContextToModules === 'function') applySelectedContextToModules(); } catch(e) {}
+    try { if (typeof updateV33TopContext === 'function') updateV33TopContext(); } catch(e) {}
+    setLoginMessage('pending', '선임된 매장이 없습니다. 아래 <strong>선임 등록하러 가기</strong>를 눌러 신규 선임을 먼저 등록해주세요.');
+  }
+  function showStoreList(name, employeeId, rows) {
+    var store = $('loginStoreResultCard');
+    var none = $('loginNoAppointmentCard');
+    var list = $('loginStoreList');
+    var person = $('loginPersonSummary');
+    if (none) none.hidden = true;
+    if (store) store.hidden = false;
+    if (person) person.textContent = name + ' / ' + employeeId;
+    setLoginMessage('success', '현재 선임된 매장 ' + rows.length + '건이 확인되었습니다. 업무를 진행할 매장을 선택해주세요.');
+    if (!list) return;
+    list.innerHTML = rows.map(function (row, i) {
+      var meta = [row.headquarter || row.storeType || '', row.department || '', row.team || ''].filter(Boolean).join(' · ');
+      return '<button type="button" class="v39-store-btn" data-v40-store-index="' + i + '">' +
+        '<div><strong>' + esc(row.storeName || '') + '</strong><span>' + esc(meta) + '</span></div><em>선택</em></button>';
+    }).join('');
+    window.__v40LoginRows = rows;
+  }
+  function selectStore(row) {
+    if (!row) return;
+    if (typeof selectedGlobalContext !== 'undefined') {
+      selectedGlobalContext = {
+        headquarter: row.headquarter || row.storeType || '',
+        department: row.department || '',
+        team: row.team || '',
+        storeName: row.storeName || '',
+        supervisorName: row.supervisorName || '',
+        employeeId: row.employeeId || '',
+        appointment: row,
+        needsAppointment: false
+      };
+    }
+    try { if (typeof globalAppointmentCandidate !== 'undefined') globalAppointmentCandidate = row; } catch(e) {}
+    try { if (typeof applySelectedContextToModules === 'function') applySelectedContextToModules(); } catch(e) {}
+    try { if (typeof updateV33TopContext === 'function') updateV33TopContext(); } catch(e) {}
+    try { if (typeof showWorkChoicePage === 'function') return showWorkChoicePage(); } catch(e) {}
+    var orgPage = $('orgSelectPage');
+    var workPage = $('workSelectPage');
+    if (orgPage) orgPage.hidden = true;
+    if (workPage) workPage.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  async function lookupSupervisor() {
+    var empInput = $('loginEmployeeIdInput');
+    if (empInput) empInput.value = String(empInput.value || '').replace(/\D/g, '');
+    var employeeId = fullEmployeeId();
+    var name = nameValue();
+    resetCards();
+    if (!employeeId) return setLoginMessage('error', '사번 숫자를 입력해주세요. AD는 자동으로 붙습니다.');
+    if (!name) return setLoginMessage('error', '성명을 입력해주세요. 이름은 가려지지 않으므로 입력값을 확인할 수 있습니다.');
+    if (!appsUrlReady()) {
+      return setLoginMessage('error', 'script.js 상단의 APPS_SCRIPT_URL에 Apps Script 웹앱 주소를 입력해야 조회가 됩니다.<br>예: https://script.google.com/macros/s/.../exec');
+    }
+    setLookupButtonLoading(true);
+    setLoginMessage('pending', '선임 매장 정보를 조회하는 중입니다. 잠시만 기다려주세요.');
+    try {
+      var data = await jsonpRequest({ mode: 'appointmentPersonListFast', employeeId: employeeId }, 18000);
+      if (!data || data.success === false) throw new Error(data && data.message ? data.message : '조회 실패');
+      var rows = (data.appointments || []).filter(function (row) { return compact(row.supervisorName) === compact(name); });
+      if (rows.length) showStoreList(name, employeeId, rows);
+      else showNoAppointment(name, employeeId);
+    } catch (err) {
+      console.error(err);
+      setLoginMessage('error', '조회 중 오류가 발생했습니다.<br>' + esc(err.message || String(err)) + '<br><span class="v40-input-row-note">Apps Script 새 배포 여부와 script.js의 APPS_SCRIPT_URL을 확인해주세요.</span>');
+    } finally {
+      setLookupButtonLoading(false);
+      if (typeof showLoading === 'function') showLoading(false);
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    var lookup = event.target && event.target.closest ? event.target.closest('#loginLookupBtn') : null;
+    if (lookup) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      lookupSupervisor();
+      return;
+    }
+    var storeBtn = event.target && event.target.closest ? event.target.closest('[data-v40-store-index]') : null;
+    if (storeBtn) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      var row = (window.__v40LoginRows || [])[Number(storeBtn.getAttribute('data-v40-store-index'))];
+      selectStore(row);
+    }
+  }, true);
+
+  document.addEventListener('input', function (event) {
+    if (event.target && event.target.id === 'loginEmployeeIdInput') {
+      event.target.value = String(event.target.value || '').replace(/\D/g, '');
+    }
+  }, true);
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter') return;
+    if (event.target && event.target.id === 'loginEmployeeIdInput') {
+      event.preventDefault();
+      var name = $('loginNameInput');
+      if (name) name.focus();
+    } else if (event.target && event.target.id === 'loginNameInput') {
+      event.preventDefault();
+      lookupSupervisor();
+    }
+  }, true);
+
+  window.addEventListener('DOMContentLoaded', function () {
+    var sub = $('topbarContextText');
+    if (sub && /조직/.test(sub.textContent || '')) sub.textContent = '사번/성명 본인확인';
+  });
 })();
