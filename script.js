@@ -1,5 +1,5 @@
 /**
- * 관리감독자 통합 관리 시스템 - GitHub Pages용 script.js v27
+ * 관리감독자 통합 관리 시스템 - GitHub Pages용 script.js v28
  *
  * 핵심 구조
  * - 화면: GitHub Pages
@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzTJsoUMejNW5vPNmcxZTfZ5QQTMcss5M6eLJL7WtwTywVudMr-Gs72RbYtjMhkltmt/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const IMAGE_COMPRESSION_CONFIG = {
   targetDataUrlLength: 260000,
   maxDataUrlLength: 360000,
@@ -2093,4 +2093,744 @@ function resetFormAfterSuccess() {
   applyAccidentFileRule();
   switchToEvaluationModule();
   showEntryPage(true);
+}
+
+
+/* ==============================
+   v28 주간 순회점검표 모듈
+   - 기존 반기평가/임명 구조 유지
+   - 주간 순회점검표 작성 + 지연 제출 판정 + 사진 가점용 데이터 저장
+   ============================== */
+const PATROL_ITEMS = [
+  { id: 'p09', no: 9, category: '집기', title: '매장입구 행사매대 고정장치' },
+  { id: 'p10', no: 10, category: '집기', title: '롤링바스켓 POP 부착·적재높이 관리' },
+  { id: 'p11', no: 11, category: '바닥', title: '매장 바닥 청결 상태' },
+  { id: 'p12', no: 12, category: '바닥', title: '바닥 타일·신주커버 파손 및 노후' },
+  { id: 'p14', no: 14, category: '천장', title: '등기구 조명상태' },
+  { id: 'p22', no: 22, category: '매대', title: '파손우려상품 상품/포장 파손 여부' },
+  { id: 'p29', no: 29, category: 'POP', title: '상품추락주의 POP 부착' },
+  { id: 'p30', no: 30, category: 'POP', title: '상품파손주의 POP 부착' },
+  { id: 'p38', no: 38, category: '집기', title: '보조집기·행사매대·스티커매대 관리' },
+  { id: 'p39', no: 39, category: '부자재', title: '진열부자재 파손·문제점' },
+  { id: 'p40', no: 40, category: '부자재', title: '곤도라/벽면 매대 하부서랍장 위험요인' },
+  { id: 'p42', no: 42, category: '비품', title: '라인용 마스킹테이프 및 박스 적재 기준' },
+  { id: 'p43', no: 43, category: '비품', title: '모서리보호대 부착' },
+  { id: 'p44', no: 44, category: '비품', title: '사다리 활용 및 보관상태' },
+  { id: 'p49', no: 49, category: '소방', title: '방화문·방화셔터 작동구간 적재물' },
+  { id: 'p52', no: 52, category: 'POP', title: '매장/엘리베이터 홍보 게시물 부착' },
+  { id: 'p54', no: 54, category: '기타', title: '조명집기 하부 및 전선/콘센트 청소' },
+  { id: 'p56', no: 56, category: '기타', title: '유리·거울 파손 여부' },
+  { id: 'p58', no: 58, category: '출입구', title: '백룸 이동통로 단차 및 방해요소' },
+  { id: 'p59', no: 59, category: 'POP', title: '백룸 포스터 관리' },
+  { id: 'p60', no: 60, category: '재고', title: '창고 관리기준 준수' },
+  { id: 'p63', no: 63, category: '소방', title: '백룸 적재박스 스프링클러 간섭' },
+  { id: 'p64', no: 64, category: '비품', title: '운반도구 L카·롤테이너 사용/관리' },
+  { id: 'p68', no: 68, category: '게시판', title: '사무실/휴게실 필수 부착물' },
+  { id: 'p74', no: 74, category: '게시판', title: '안전관련 일지 작성' },
+  { id: 'p75', no: 75, category: '게시판', title: '위험성평가 기록 관리' },
+  { id: 'p76', no: 76, category: '게시판', title: '비상대응훈련 기록 관리' },
+  { id: 'p77', no: 77, category: '게시판', title: 'TBM 회의록 및 서명록' },
+  { id: 'p82', no: 82, category: '비품', title: '본사 규정 멀티탭 사용' },
+  { id: 'p101', no: 101, category: '비품', title: '직원용 안전칼 사용' }
+];
+
+let patrolSelectedAppointment = null;
+let patrolSelectedFiles = {};
+let patrolWeekInfo = null;
+let patrolHasSignature = false;
+let patrolSignatureContext = null;
+let patrolSignatureDrawing = false;
+let patrolLastSignaturePoint = null;
+
+window.addEventListener('DOMContentLoaded', function () {
+  initPatrolModule();
+});
+
+function initV19ModuleSwitch() {
+  const evaluationModule = document.getElementById('evaluationModule');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const patrolModule = document.getElementById('patrolModule');
+  const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
+  const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
+  const showPatrolBtn = document.getElementById('showPatrolModuleBtn');
+  if (!evaluationModule || !appointmentModule || !showEvaluationBtn || !showAppointmentBtn) return;
+
+  evaluationModule.hidden = true;
+  appointmentModule.hidden = true;
+  if (patrolModule) patrolModule.hidden = true;
+  showEvaluationBtn.classList.remove('active');
+  showAppointmentBtn.classList.remove('active');
+  if (showPatrolBtn) showPatrolBtn.classList.remove('active');
+
+  showEvaluationBtn.addEventListener('click', async function () {
+    const proceed = await showSubmitModal({
+      type: 'confirm',
+      title: '관리감독자 임명 확인 안내',
+      html: '반기 업무수행평가는 <strong>관리감독자 임명이 완료된 매장</strong>만 진행할 수 있습니다.<br><br>' +
+        '<div class="modal-info-box">' +
+        '<div><b>1단계</b><span>관리감독자 임명/변경 등록</span></div>' +
+        '<div><b>2단계</b><span>주간 순회점검표 작성 누적</span></div>' +
+        '<div><b>3단계</b><span>반기평가 진행</span></div>' +
+        '</div>' +
+        '<p class="modal-small-text">아직 임명 등록이 안 되어 있으면 먼저 임명/변경을 진행해주세요.</p>',
+      confirmText: '임명 완료, 평가 진행하기',
+      cancelText: '임명/변경 먼저 하기'
+    });
+    if (!proceed) { switchToAppointmentModule(); return; }
+    switchToEvaluationModule();
+  });
+
+  showAppointmentBtn.addEventListener('click', function () { switchToAppointmentModule(); });
+  if (showPatrolBtn) showPatrolBtn.addEventListener('click', function () { switchToPatrolModule(); });
+}
+
+function switchToAppointmentModule() {
+  const evaluationModule = document.getElementById('evaluationModule');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const patrolModule = document.getElementById('patrolModule');
+  const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
+  const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
+  const showPatrolBtn = document.getElementById('showPatrolModuleBtn');
+  if (evaluationModule) evaluationModule.hidden = true;
+  if (appointmentModule) appointmentModule.hidden = false;
+  if (patrolModule) patrolModule.hidden = true;
+  if (showAppointmentBtn) showAppointmentBtn.classList.add('active');
+  if (showEvaluationBtn) showEvaluationBtn.classList.remove('active');
+  if (showPatrolBtn) showPatrolBtn.classList.remove('active');
+  ensureAppointmentStoreRow();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function switchToEvaluationModule() {
+  const evaluationModule = document.getElementById('evaluationModule');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const patrolModule = document.getElementById('patrolModule');
+  const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
+  const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
+  const showPatrolBtn = document.getElementById('showPatrolModuleBtn');
+  if (evaluationModule) evaluationModule.hidden = false;
+  if (appointmentModule) appointmentModule.hidden = true;
+  if (patrolModule) patrolModule.hidden = true;
+  if (showEvaluationBtn) showEvaluationBtn.classList.add('active');
+  if (showAppointmentBtn) showAppointmentBtn.classList.remove('active');
+  if (showPatrolBtn) showPatrolBtn.classList.remove('active');
+  showEntryPage(false);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function switchToPatrolModule() {
+  const evaluationModule = document.getElementById('evaluationModule');
+  const appointmentModule = document.getElementById('appointmentModule');
+  const patrolModule = document.getElementById('patrolModule');
+  const showEvaluationBtn = document.getElementById('showEvaluationModuleBtn');
+  const showAppointmentBtn = document.getElementById('showAppointmentModuleBtn');
+  const showPatrolBtn = document.getElementById('showPatrolModuleBtn');
+  if (evaluationModule) evaluationModule.hidden = true;
+  if (appointmentModule) appointmentModule.hidden = true;
+  if (patrolModule) patrolModule.hidden = false;
+  if (showEvaluationBtn) showEvaluationBtn.classList.remove('active');
+  if (showAppointmentBtn) showAppointmentBtn.classList.remove('active');
+  if (showPatrolBtn) showPatrolBtn.classList.add('active');
+  updatePatrolWeekInfo();
+  populatePatrolHeadquarters();
+  setTimeout(function () { resizePatrolSignatureCanvas(true); }, 120);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function initPatrolModule() {
+  renderPatrolItems();
+  bindPatrolOrgSelects();
+  bindPatrolFileInputs();
+  setupPatrolSignaturePad();
+  updatePatrolWeekInfo();
+  const formEl = document.getElementById('patrolForm');
+  if (formEl) formEl.addEventListener('submit', handlePatrolSubmit);
+}
+
+function loadOrganizationTree() {
+  if (!validateAppsScriptUrl(false)) {
+    setOrgMessage('error', 'Apps Script URL을 먼저 script.js에 입력해야 매장정보를 불러올 수 있습니다.');
+    showLoading(false);
+    return;
+  }
+  setOrgMessage('pending', '매장정보를 불러오는 중입니다...');
+  showLoading(true, '수도권영업본부·지방영업본부 기준 매장정보를 불러오는 중입니다. 잠시만 기다려주세요.', '매장정보를 불러오는 중입니다');
+  jsonpRequest({ mode: 'org' }, 30000)
+    .then(function (data) {
+      if (!data || !data.success) throw new Error(data && data.message ? data.message : '매장정보 불러오기 실패');
+      orgTree = data.tree || {};
+      populateHeadquarters();
+      populatePatrolHeadquarters();
+      refreshAppointmentRows();
+      setOrgMessage('success', '매장정보를 불러왔습니다. 총 ' + (data.count || 0) + '개 매장 기준입니다.');
+      showLoading(false);
+    })
+    .catch(function (error) {
+      console.error(error);
+      setOrgMessage('error', '매장정보를 불러오지 못했습니다. 직영점/유통점/유통CAO 시트와 Apps Script 배포 권한을 확인해주세요.');
+      resetSelect(headquarterSelect, '매장정보 불러오기 실패', true);
+      resetSelect(departmentSelect, '영업본부를 먼저 선택해주세요', true);
+      resetSelect(teamSelect, '부서명을 먼저 선택해주세요', true);
+      resetSelect(storeSelect, '팀명을 먼저 선택해주세요', true);
+      showLoading(false);
+    });
+}
+
+function renderPatrolItems() {
+  const container = document.getElementById('patrolItemsContainer');
+  if (!container) return;
+  container.innerHTML = PATROL_ITEMS.map(function (item) {
+    return '<div class="patrol-check-item" data-patrol-item-card="' + item.id + '">' +
+      '<span class="patrol-check-meta">' + item.category + ' · ' + item.no + '번</span>' +
+      '<div class="patrol-check-title">' + escapeHtml(item.title) + '</div>' +
+      '<div class="patrol-result-buttons" role="radiogroup" aria-label="' + escapeHtml(item.title) + '">' +
+      '<label><input type="radio" name="' + item.id + '_result" value="양호" checked />양호</label>' +
+      '<label><input type="radio" name="' + item.id + '_result" value="미흡" />미흡</label>' +
+      '<label><input type="radio" name="' + item.id + '_result" value="해당없음" />해당없음</label>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+
+  PATROL_ITEMS.forEach(function (item) {
+    document.querySelectorAll('input[name="' + item.id + '_result"]').forEach(function (radio) {
+      radio.addEventListener('change', function () { applyPatrolItemState(item.id); });
+    });
+    applyPatrolItemState(item.id);
+  });
+}
+
+function applyPatrolItemState(itemId) {
+  const checked = document.querySelector('input[name="' + itemId + '_result"]:checked');
+  const card = document.querySelector('[data-patrol-item-card="' + itemId + '"]');
+  if (card) card.classList.toggle('insufficient', checked && checked.value === '미흡');
+}
+
+function bindPatrolOrgSelects() {
+  const hq = document.getElementById('patrolHeadquarterSelect');
+  const dept = document.getElementById('patrolDepartmentSelect');
+  const team = document.getElementById('patrolTeamSelect');
+  const store = document.getElementById('patrolStoreSelect');
+  if (!hq || !dept || !team || !store) return;
+  hq.addEventListener('change', function () { clearPatrolAppointment(); populatePatrolDepartments(); });
+  dept.addEventListener('change', function () { clearPatrolAppointment(); populatePatrolTeams(); });
+  team.addEventListener('change', function () { clearPatrolAppointment(); populatePatrolStores(); });
+  store.addEventListener('change', function () { clearPatrolAppointment(); loadPatrolAppointmentsForSelectedStore(); });
+}
+
+function populatePatrolHeadquarters() {
+  const hq = document.getElementById('patrolHeadquarterSelect');
+  const dept = document.getElementById('patrolDepartmentSelect');
+  const team = document.getElementById('patrolTeamSelect');
+  const store = document.getElementById('patrolStoreSelect');
+  if (!hq || !dept || !team || !store) return;
+  const headquarters = Object.keys(orgTree || {}).sort(koreanSort);
+  fillSelect(hq, headquarters, '영업본부를 선택해주세요', headquarters.length === 0);
+  fillSelect(dept, [], '영업본부를 먼저 선택해주세요', true);
+  fillSelect(team, [], '부서명을 먼저 선택해주세요', true);
+  fillSelect(store, [], '팀명을 먼저 선택해주세요', true);
+}
+
+function populatePatrolDepartments() {
+  const hq = document.getElementById('patrolHeadquarterSelect');
+  const dept = document.getElementById('patrolDepartmentSelect');
+  const team = document.getElementById('patrolTeamSelect');
+  const store = document.getElementById('patrolStoreSelect');
+  const departments = hq && hq.value && orgTree[hq.value] ? Object.keys(orgTree[hq.value]).sort(koreanSort) : [];
+  fillSelect(dept, departments, '부서명을 선택해주세요', departments.length === 0);
+  fillSelect(team, [], '부서명을 먼저 선택해주세요', true);
+  fillSelect(store, [], '팀명을 먼저 선택해주세요', true);
+}
+
+function populatePatrolTeams() {
+  const hq = document.getElementById('patrolHeadquarterSelect');
+  const dept = document.getElementById('patrolDepartmentSelect');
+  const team = document.getElementById('patrolTeamSelect');
+  const store = document.getElementById('patrolStoreSelect');
+  const teams = hq && dept && hq.value && dept.value && orgTree[hq.value] && orgTree[hq.value][dept.value]
+    ? Object.keys(orgTree[hq.value][dept.value]).sort(koreanSort)
+    : [];
+  fillSelect(team, teams, '팀명을 선택해주세요', teams.length === 0);
+  fillSelect(store, [], '팀명을 먼저 선택해주세요', true);
+}
+
+function populatePatrolStores() {
+  const hq = document.getElementById('patrolHeadquarterSelect');
+  const dept = document.getElementById('patrolDepartmentSelect');
+  const team = document.getElementById('patrolTeamSelect');
+  const store = document.getElementById('patrolStoreSelect');
+  const stores = hq && dept && team && hq.value && dept.value && team.value && orgTree[hq.value] && orgTree[hq.value][dept.value] && orgTree[hq.value][dept.value][team.value]
+    ? orgTree[hq.value][dept.value][team.value].slice().sort(koreanSort)
+    : [];
+  fillSelect(store, stores, '매장명을 선택해주세요', stores.length === 0);
+}
+
+async function loadPatrolAppointmentsForSelectedStore() {
+  const store = document.getElementById('patrolStoreSelect');
+  const card = document.getElementById('patrolAppointmentListCard');
+  const list = document.getElementById('patrolAppointmentList');
+  const status = document.getElementById('patrolAppointmentListStatus');
+  if (!store || !card || !list || !status) return;
+  const storeName = store.value;
+  if (!storeName) { card.hidden = true; return; }
+  card.hidden = false;
+  status.textContent = '임명 정보를 확인 중입니다...';
+  list.innerHTML = '<div class="appointed-empty">현재 임명 정보를 불러오는 중입니다.</div>';
+  try {
+    const data = await jsonpRequest({ mode: 'appointmentList', storeName: storeName }, 20000);
+    if (!data || data.success === false) throw new Error(data && data.message ? data.message : '임명자 조회 실패');
+    renderPatrolAppointmentList(data.appointments || []);
+  } catch (err) {
+    status.textContent = '조회 실패';
+    list.innerHTML = '<div class="appointed-empty">임명 정보를 불러오지 못했습니다.<br>잠시 후 다시 시도하거나 안전보건팀에 문의해주세요.</div>';
+  }
+}
+
+function renderPatrolAppointmentList(appointments) {
+  const list = document.getElementById('patrolAppointmentList');
+  const status = document.getElementById('patrolAppointmentListStatus');
+  if (!list || !status) return;
+  list.innerHTML = '';
+  if (!appointments.length) {
+    status.textContent = '임명 정보 없음';
+    list.innerHTML = '<div class="appointed-empty">해당 매장의 관리감독자 임명 정보가 확인되지 않습니다.<br><b>관리감독자 임명/변경</b>을 먼저 진행해주세요.</div>';
+    return;
+  }
+  status.textContent = appointments.length + '명 확인됨';
+  appointments.forEach(function (ap, index) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'appointed-person-btn';
+    btn.innerHTML = '<div><strong>' + escapeHtml(ap.supervisorName || '') + '</strong>' +
+      '<span>' + escapeHtml(ap.employeeId || '') + ' · 선임일 ' + escapeHtml(formatAppointmentDateText(ap.appliedAt || '')) + '</span></div>' +
+      '<em class="select-chip">선택</em>';
+    btn.addEventListener('click', function () { selectPatrolAppointment(ap, btn); });
+    list.appendChild(btn);
+  });
+}
+
+function selectPatrolAppointment(ap, button) {
+  patrolSelectedAppointment = ap || null;
+  document.querySelectorAll('#patrolAppointmentList .appointed-person-btn').forEach(function (el) { el.classList.remove('selected'); });
+  if (button) button.classList.add('selected');
+  const nameInput = document.getElementById('patrolSupervisorNameInput');
+  const empInput = document.getElementById('patrolEmployeeIdInput');
+  const full = document.getElementById('patrolEmployeeIdFull');
+  const empId = String(ap.employeeId || '').toUpperCase();
+  const digits = empId.replace(/^AD/i, '').replace(/\D/g, '');
+  if (nameInput) nameInput.value = ap.supervisorName || '';
+  if (empInput) empInput.value = digits;
+  if (full) full.value = digits ? 'AD' + digits : empId;
+  const status = document.getElementById('patrolAppointmentListStatus');
+  if (status) status.textContent = '임명자 선택 완료';
+}
+
+function clearPatrolAppointment() {
+  patrolSelectedAppointment = null;
+  document.querySelectorAll('#patrolAppointmentList .appointed-person-btn').forEach(function (el) { el.classList.remove('selected'); });
+  const nameInput = document.getElementById('patrolSupervisorNameInput');
+  const empInput = document.getElementById('patrolEmployeeIdInput');
+  const full = document.getElementById('patrolEmployeeIdFull');
+  if (nameInput) nameInput.value = '';
+  if (empInput) empInput.value = '';
+  if (full) full.value = '';
+  const card = document.getElementById('patrolAppointmentListCard');
+  const list = document.getElementById('patrolAppointmentList');
+  const status = document.getElementById('patrolAppointmentListStatus');
+  if (card) card.hidden = true;
+  if (list) list.innerHTML = '';
+  if (status) status.textContent = '매장을 선택하면 임명 정보를 확인합니다.';
+}
+
+function updatePatrolWeekInfo() {
+  patrolWeekInfo = getCurrentPatrolWeekInfo();
+  const title = document.getElementById('patrolWeekTitle');
+  const period = document.getElementById('patrolWeekPeriod');
+  if (title) title.textContent = patrolWeekInfo.year + '년 ' + patrolWeekInfo.month + '월 ' + patrolWeekInfo.weekNo + '주차';
+  if (period) period.textContent = '제출 가능 기간 ' + formatMonthDayWeekday(patrolWeekInfo.startDate) + ' ~ ' + formatMonthDayWeekday(patrolWeekInfo.endDate);
+}
+
+function getCurrentPatrolWeekInfo() {
+  const today = new Date();
+  const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diff = (base.getDay() + 6) % 7;
+  const start = new Date(base);
+  start.setDate(base.getDate() - diff);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
+  const firstDiff = (monthStart.getDay() + 6) % 7;
+  const weekNo = Math.floor((start.getDate() + firstDiff - 1) / 7) + 1;
+  const year = start.getFullYear();
+  const month = start.getMonth() + 1;
+  const weekKey = year + '-' + String(month).padStart(2, '0') + '-W' + String(weekNo).padStart(2, '0');
+  return {
+    year: year,
+    month: month,
+    weekNo: weekNo,
+    weekKey: weekKey,
+    startDate: toDateOnly(start),
+    endDate: toDateOnly(end)
+  };
+}
+
+function toDateOnly(date) {
+  return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+}
+
+function formatMonthDayWeekday(dateText) {
+  const date = new Date(dateText + 'T00:00:00');
+  const weekdays = ['일','월','화','수','목','금','토'];
+  return (date.getMonth() + 1) + '/' + date.getDate() + '(' + weekdays[date.getDay()] + ')';
+}
+
+function bindPatrolFileInputs() {
+  document.addEventListener('change', function (event) {
+    const input = event.target;
+    if (!input.matches('[data-patrol-file]')) return;
+    const field = input.getAttribute('data-patrol-file');
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+    const invalid = files.find(function (file) { return !file.type || !file.type.startsWith('image/'); });
+    if (invalid) {
+      alert('이미지 파일만 첨부할 수 있습니다.');
+      input.value = '';
+      return;
+    }
+    const existing = Array.isArray(patrolSelectedFiles[field]) ? patrolSelectedFiles[field] : [];
+    patrolSelectedFiles[field] = existing.concat(files);
+    updatePatrolFilePreview(field);
+    input.value = '';
+  });
+  document.addEventListener('click', function (event) {
+    const btn = event.target.closest('[data-clear-patrol-file]');
+    if (!btn) return;
+    const field = btn.getAttribute('data-clear-patrol-file');
+    delete patrolSelectedFiles[field];
+    updatePatrolFilePreview(field);
+  });
+}
+
+function updatePatrolFilePreview(field) {
+  const row = document.getElementById(field + '_preview');
+  const span = document.querySelector('[data-patrol-preview="' + field + '"]');
+  const files = patrolSelectedFiles[field] || [];
+  if (!row || !span) return;
+  if (!files.length) {
+    row.classList.remove('active');
+    span.textContent = '';
+    return;
+  }
+  row.classList.add('active');
+  span.textContent = files.length === 1 ? '첨부됨: 1장 · ' + files[0].name : '첨부됨: 총 ' + files.length + '장';
+}
+
+function setupPatrolSignaturePad() {
+  const pad = document.getElementById('patrolSignaturePad');
+  const clearBtn = document.getElementById('clearPatrolSignatureBtn');
+  if (!pad) return;
+  patrolSignatureContext = pad.getContext('2d');
+  resizePatrolSignatureCanvas(false);
+  pad.addEventListener('pointerdown', startPatrolSignature);
+  pad.addEventListener('pointermove', drawPatrolSignature);
+  pad.addEventListener('pointerup', endPatrolSignature);
+  pad.addEventListener('pointercancel', endPatrolSignature);
+  pad.addEventListener('pointerleave', endPatrolSignature);
+  if (clearBtn) clearBtn.addEventListener('click', clearPatrolSignature);
+  window.addEventListener('resize', debounce(function () { resizePatrolSignatureCanvas(true); }, 250));
+}
+
+function resizePatrolSignatureCanvas(keepExisting) {
+  const pad = document.getElementById('patrolSignaturePad');
+  if (!pad || !patrolSignatureContext) return;
+  let oldDataUrl = '';
+  if (keepExisting && patrolHasSignature) oldDataUrl = pad.toDataURL('image/png');
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  const rect = pad.getBoundingClientRect();
+  const width = Math.max(rect.width, 300);
+  const height = Math.max(rect.height, 160);
+  pad.width = Math.round(width * ratio);
+  pad.height = Math.round(height * ratio);
+  patrolSignatureContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+  patrolSignatureContext.lineWidth = 3;
+  patrolSignatureContext.lineCap = 'round';
+  patrolSignatureContext.lineJoin = 'round';
+  patrolSignatureContext.strokeStyle = '#111827';
+  if (oldDataUrl) {
+    const img = new Image();
+    img.onload = function () { patrolSignatureContext.drawImage(img, 0, 0, width, height); };
+    img.src = oldDataUrl;
+  }
+}
+
+function getPatrolSignaturePoint(event) {
+  const pad = document.getElementById('patrolSignaturePad');
+  const rect = pad.getBoundingClientRect();
+  return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
+function startPatrolSignature(event) {
+  const pad = document.getElementById('patrolSignaturePad');
+  const wrap = document.querySelector('.patrol-signature-wrap');
+  event.preventDefault();
+  pad.setPointerCapture(event.pointerId);
+  patrolSignatureDrawing = true;
+  patrolLastSignaturePoint = getPatrolSignaturePoint(event);
+  patrolHasSignature = true;
+  if (wrap) wrap.classList.add('signed');
+}
+function drawPatrolSignature(event) {
+  if (!patrolSignatureDrawing || !patrolLastSignaturePoint) return;
+  event.preventDefault();
+  const point = getPatrolSignaturePoint(event);
+  patrolSignatureContext.beginPath();
+  patrolSignatureContext.moveTo(patrolLastSignaturePoint.x, patrolLastSignaturePoint.y);
+  patrolSignatureContext.lineTo(point.x, point.y);
+  patrolSignatureContext.stroke();
+  patrolLastSignaturePoint = point;
+}
+function endPatrolSignature(event) {
+  if (!patrolSignatureDrawing) return;
+  event.preventDefault();
+  patrolSignatureDrawing = false;
+  patrolLastSignaturePoint = null;
+}
+function clearPatrolSignature() {
+  const pad = document.getElementById('patrolSignaturePad');
+  const wrap = document.querySelector('.patrol-signature-wrap');
+  if (!pad || !patrolSignatureContext) return;
+  const rect = pad.getBoundingClientRect();
+  patrolSignatureContext.clearRect(0, 0, rect.width, rect.height);
+  patrolHasSignature = false;
+  if (wrap) wrap.classList.remove('signed');
+}
+function getPatrolSignatureDataUrl() {
+  const pad = document.getElementById('patrolSignaturePad');
+  const rect = pad.getBoundingClientRect();
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = Math.round(rect.width);
+  exportCanvas.height = Math.round(rect.height);
+  const ctx = exportCanvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+  ctx.drawImage(pad, 0, 0, exportCanvas.width, exportCanvas.height);
+  return exportCanvas.toDataURL('image/jpeg', 0.82);
+}
+
+function getPatrolBasicInfo() {
+  const hq = document.getElementById('patrolHeadquarterSelect');
+  const dept = document.getElementById('patrolDepartmentSelect');
+  const team = document.getElementById('patrolTeamSelect');
+  const store = document.getElementById('patrolStoreSelect');
+  const name = document.getElementById('patrolSupervisorNameInput');
+  const emp = document.getElementById('patrolEmployeeIdFull');
+  return {
+    headquarter: hq ? hq.value : '',
+    department: dept ? dept.value : '',
+    team: team ? team.value : '',
+    storeName: store ? store.value : '',
+    supervisorName: name ? normalizeText(name.value || '') : '',
+    employeeId: emp ? emp.value : ''
+  };
+}
+
+function validatePatrolBasic() {
+  const fields = [
+    [document.getElementById('patrolHeadquarterSelect'), '영업본부를 선택해주세요.'],
+    [document.getElementById('patrolDepartmentSelect'), '부서명을 선택해주세요.'],
+    [document.getElementById('patrolTeamSelect'), '팀명을 선택해주세요.'],
+    [document.getElementById('patrolStoreSelect'), '매장명을 선택해주세요.']
+  ];
+  for (const pair of fields) {
+    if (!pair[0] || !String(pair[0].value || '').trim()) {
+      setPatrolResult('error', pair[1]);
+      if (pair[0] && pair[0].focus) pair[0].focus();
+      return false;
+    }
+  }
+  if (!patrolSelectedAppointment) {
+    setPatrolResult('error', '현재 임명된 관리감독자를 선택해주세요. 임명 정보가 없으면 임명/변경을 먼저 진행해야 합니다.');
+    const card = document.getElementById('patrolAppointmentListCard');
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+  if (!patrolHasSignature) {
+    setPatrolResult('error', '제출 전 서명란에 서명해주세요.');
+    const wrap = document.querySelector('.patrol-signature-wrap');
+    if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+  return true;
+}
+
+async function handlePatrolSubmit(event) {
+  event.preventDefault();
+  setPatrolResult('', '');
+  if (!validateAppsScriptUrl()) return;
+  if (!validateOrganizationLoaded()) return;
+  if (!validatePatrolBasic()) return;
+  updatePatrolWeekInfo();
+  const basic = getPatrolBasicInfo();
+  const confirmed = await showSubmitModal({
+    type: 'confirm',
+    title: '주간순회점검표 제출 전 확인',
+    html: '<div class="modal-info-box">' +
+      '<div><b>주차</b><span>' + escapeHtml(patrolWeekInfo.year + '년 ' + patrolWeekInfo.month + '월 ' + patrolWeekInfo.weekNo + '주차') + '</span></div>' +
+      '<div><b>매장명</b><span>' + escapeHtml(basic.storeName) + '</span></div>' +
+      '<div><b>성명</b><span>' + escapeHtml(basic.supervisorName) + '</span></div>' +
+      '<div><b>사번</b><span>' + escapeHtml(basic.employeeId) + '</span></div>' +
+      '</div><p class="modal-small-text">동일 주차는 1회만 제출할 수 있습니다. 정보가 다르면 취소 후 수정해주세요.</p>',
+    confirmText: '확인 후 제출',
+    cancelText: '수정하기'
+  });
+  if (!confirmed) return;
+
+  const submitBtnEl = document.getElementById('patrolSubmitBtn');
+  try {
+    if (submitBtnEl) { submitBtnEl.disabled = true; submitBtnEl.textContent = '제출 중입니다...'; }
+    showLoading(true, '사진을 압축하고 주간순회점검표를 준비 중입니다.', '주간순회점검표 제출 중');
+    const payload = await buildPatrolPayload();
+    await postPayloadByHiddenForm(payload);
+    showLoading(true, '자료가 전송되었습니다. 저장 완료 여부를 확인 중입니다.');
+    const status = await waitForPatrolStatus(payload.submissionId);
+    if (!status || !status.success) throw new Error(status && status.message ? status.message : '저장 상태 확인 실패');
+    showLoading(false);
+    await showSubmitModal({
+      type: 'success',
+      title: '제출이 완료되었습니다',
+      html: '<div class="modal-info-box">' +
+        '<div><b>제출상태</b><span>' + escapeHtml(status.submitStatus || '저장 완료') + '</span></div>' +
+        '<div><b>매장명</b><span>' + escapeHtml(basic.storeName) + '</span></div>' +
+        '<div><b>주차</b><span>' + escapeHtml(patrolWeekInfo.weekKey) + '</span></div>' +
+        '</div><p class="modal-small-text">제출 결과는 순회점검_DB와 월별/반기 집계 시트에 자동 반영됩니다.</p>',
+      confirmText: '확인'
+    });
+    resetPatrolFormAfterSuccess();
+  } catch (err) {
+    showLoading(false);
+    await showSubmitModal({ type: 'error', title: '제출 중 오류가 발생했습니다', html: escapeHtml(err.message), confirmText: '확인' });
+  } finally {
+    if (submitBtnEl) { submitBtnEl.disabled = false; submitBtnEl.textContent = '주간순회점검표 제출하기'; }
+    showLoading(false);
+  }
+}
+
+async function buildPatrolPayload() {
+  const submissionId = 'PT-' + new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14) + '-' + Math.random().toString(36).slice(2, 10);
+  const items = PATROL_ITEMS.map(function (item) {
+    const checked = document.querySelector('input[name="' + item.id + '_result"]:checked');
+    return {
+      id: item.id,
+      no: item.no,
+      category: item.category,
+      title: item.title,
+      result: checked ? checked.value : '양호'
+    };
+  });
+  const attachments = await collectPatrolAttachments(submissionId);
+  attachments.push({
+    field: 'patrol_signature',
+    label: '주간순회점검 제출자 전자서명',
+    hasFile: true,
+    originalName: 'patrol_signature.jpg',
+    fileName: submissionId + '_patrol_signature.jpg',
+    mimeType: 'image/jpeg',
+    size: getPatrolSignatureDataUrl().length,
+    dataUrl: getPatrolSignatureDataUrl()
+  });
+  return {
+    type: 'weeklyPatrol',
+    submissionId: submissionId,
+    submittedAtClient: new Date().toISOString(),
+    userAgent: navigator.userAgent || '',
+    basic: getPatrolBasicInfo(),
+    week: patrolWeekInfo || getCurrentPatrolWeekInfo(),
+    items: items,
+    note: document.getElementById('patrolNoteInput') ? document.getElementById('patrolNoteInput').value : '',
+    attachments: attachments
+  };
+}
+
+async function collectPatrolAttachments(submissionId) {
+  const fields = [
+    { name: 'patrol_photos', label: '주간순회점검 일반 사진' },
+    { name: 'patrol_before_photos', label: '개선 전 사진' },
+    { name: 'patrol_after_photos', label: '개선 후 사진' }
+  ];
+  const attachments = [];
+  for (const field of fields) {
+    const files = patrolSelectedFiles[field.name] || [];
+    if (!files.length) {
+      attachments.push({ field: field.name, label: field.label, hasFile: false });
+      continue;
+    }
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const processed = await processImageFile(file);
+      const suffix = files.length > 1 ? '_' + (i + 1) : '';
+      attachments.push({
+        field: field.name,
+        label: field.label + (files.length > 1 ? ' ' + (i + 1) + '/' + files.length : ''),
+        hasFile: true,
+        fileIndex: i + 1,
+        fileCount: files.length,
+        originalName: file.name,
+        fileName: submissionId + '_' + field.name + suffix + '_' + sanitizeFileName(file.name),
+        mimeType: processed.mimeType,
+        size: processed.size,
+        originalSize: processed.originalSize || file.size || 0,
+        compressed: !!processed.compressed,
+        dataUrl: processed.dataUrl
+      });
+    }
+  }
+  return attachments;
+}
+
+function waitForPatrolStatus(submissionId) {
+  const started = Date.now();
+  const timeoutMs = 100000;
+  const intervalMs = 2200;
+  return new Promise(function (resolve, reject) {
+    function poll() {
+      jsonpRequest({ mode: 'patrolStatus', submissionId: submissionId }, 20000)
+        .then(function (data) {
+          if (data && data.found) {
+            if (data.success) resolve(data);
+            else reject(new Error(data.message || '저장 실패'));
+            return;
+          }
+          if (Date.now() - started > timeoutMs) return reject(new Error('저장 완료 확인 시간이 초과되었습니다. 순회점검_DB 시트를 확인해주세요.'));
+          setTimeout(poll, intervalMs);
+        })
+        .catch(function () {
+          if (Date.now() - started > timeoutMs) return reject(new Error('저장 상태 확인에 실패했습니다. 네트워크 상태를 확인해주세요.'));
+          setTimeout(poll, intervalMs);
+        });
+    }
+    poll();
+  });
+}
+
+function setPatrolResult(type, msg) {
+  const result = document.getElementById('patrolResultMessage');
+  if (!result) return;
+  result.className = 'result ' + (type || '');
+  result.innerHTML = msg || '';
+}
+
+function resetPatrolFormAfterSuccess() {
+  const formEl = document.getElementById('patrolForm');
+  if (formEl) formEl.reset();
+  patrolSelectedFiles = {};
+  document.querySelectorAll('[data-patrol-preview]').forEach(function (span) { span.textContent = ''; });
+  document.querySelectorAll('.patrol-photo-section .preview-row').forEach(function (row) { row.classList.remove('active'); });
+  PATROL_ITEMS.forEach(function (item) {
+    const good = document.querySelector('input[name="' + item.id + '_result"][value="양호"]');
+    if (good) good.checked = true;
+    applyPatrolItemState(item.id);
+  });
+  clearPatrolSignature();
+  clearPatrolAppointment();
+  populatePatrolHeadquarters();
+  updatePatrolWeekInfo();
+  setPatrolResult('', '');
 }
