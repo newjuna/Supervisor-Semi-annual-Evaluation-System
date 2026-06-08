@@ -2376,7 +2376,7 @@ textarea:focus {
 
 
 /* ==============================
-   v28.2 주간 순회점검표 개선
+   v28.3 주간 순회점검표 개선
    ============================== */
 .patrol-item-tool-row { margin-top: 10px; display: grid; grid-template-columns: 1fr; }
 .patrol-example-btn { width: 100%; min-height: 46px; background: #fff7ed; border-color: #fed7aa; color: #9a3412; }

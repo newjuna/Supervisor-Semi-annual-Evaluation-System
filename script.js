@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzqoBszn82e-1EXFI_IZUWp372BHYMnqDTmQkpa6w3_rtWJwBa2AtGlLQk7eHpWJGD4/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const IMAGE_COMPRESSION_CONFIG = {
   targetDataUrlLength: 260000,
   maxDataUrlLength: 360000,
@@ -2097,7 +2097,7 @@ function resetFormAfterSuccess() {
 
 
 /* ==============================
-   v28.2 주간 순회점검표 모듈
+   v28.3 주간 순회점검표 모듈
    - 기존 반기평가/임명 구조 유지
    - 주간 순회점검표 작성 + 지연 제출 판정 + 사진 가점용 데이터 저장
    ============================== */
@@ -2126,10 +2126,6 @@ const PATROL_ITEMS = [
   { id: 'p63', no: 63, category: '소방', title: '백룸 적재박스 스프링클러 간섭', exampleSrc: 'assets/patrol_examples/p63.jpg' },
   { id: 'p64', no: 64, category: '비품', title: '운반도구 L카·롤테이너 사용/관리', exampleSrc: 'assets/patrol_examples/p64.jpg' },
   { id: 'p68', no: 68, category: '게시판', title: '사무실/휴게실 필수 부착물', exampleSrc: 'assets/patrol_examples/p68.jpg' },
-  { id: 'p74', no: 74, category: '게시판', title: '안전관련 일지 작성', exampleSrc: 'assets/patrol_examples/p74.jpg' },
-  { id: 'p75', no: 75, category: '게시판', title: '위험성평가 기록 관리', exampleSrc: 'assets/patrol_examples/p75.jpg' },
-  { id: 'p76', no: 76, category: '게시판', title: '비상대응훈련 기록 관리', exampleSrc: 'assets/patrol_examples/p76.jpg' },
-  { id: 'p77', no: 77, category: '게시판', title: 'TBM 회의록 및 서명록', exampleSrc: 'assets/patrol_examples/p77.jpg' },
   { id: 'p82', no: 82, category: '비품', title: '본사 규정 멀티탭 사용', exampleSrc: 'assets/patrol_examples/p82.jpg' },
   { id: 'p101', no: 101, category: '비품', title: '직원용 안전칼 사용', exampleSrc: 'assets/patrol_examples/p101.jpg' }
 ];
