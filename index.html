@@ -106,7 +106,7 @@
           <button type="button" class="v33-work-row" id="showPatrolModuleBtn">
             <span>02</span>
             <b>주간순회점검</b>
-            <em>이번 주 점검표 작성, 전주 결과 확인</em>
+            <em>이번 주 점검표 작성, 과거 결과 조회</em>
           </button>
           <button type="button" class="v33-work-row" id="showEvaluationModuleBtn">
             <span>03</span>
@@ -290,7 +290,6 @@
 
         <div class="patrol-quick-actions no-print" aria-label="주간순회점검 빠른 실행">
           <button type="button" id="patrolQuickWriteBtn" class="patrol-quick-btn active">작성</button>
-          <button type="button" id="patrolQuickPrevBtn" class="patrol-quick-btn">전주결과</button>
           <button type="button" id="patrolQuickSearchBtn" class="patrol-quick-btn">과거조회</button>
           <button type="button" id="patrolQuickTopBtn" class="patrol-quick-btn">상단</button>
         </div>
@@ -463,7 +462,7 @@
         <div>
           <span class="badge-soft">과거 조회</span>
           <h2 id="patrolSearchModalTitle">과거 점검결과 조회</h2>
-          <p>선택한 매장·관리감독자 기준으로 필요한 주차를 조회합니다.</p>
+          <p>연도·월·주차를 선택하거나 최근 점검이력을 바로 열 수 있습니다.</p>
         </div>
         <button type="button" class="modal-close" data-patrol-search-close>닫기</button>
       </div>
@@ -481,12 +480,17 @@
             주차
             <select id="patrolSearchWeek"></select>
           </label>
-          <label>
-            조회 기준
-            <input type="text" value="선택한 매장·관리감독자 기준" readonly />
-          </label>
         </div>
         <button type="button" class="sub-btn patrol-query-btn" id="patrolPastSearchBtn">선택 주차 조회하기</button>
+        <div class="patrol-recent-history-box">
+          <div class="patrol-recent-history-head">
+            <strong>최근 점검이력</strong>
+            <span>최근 5건</span>
+          </div>
+          <div id="patrolRecentHistoryList" class="patrol-recent-history-list">
+            <div class="inline-message pending">최근 점검이력을 불러오는 중입니다...</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

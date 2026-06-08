@@ -10,7 +10,7 @@
  *
  * 사용 전 반드시 아래 APPS_SCRIPT_URL을 본인의 Apps Script 웹앱 URL로 변경하세요.
  */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzua3KrL73HlJQBvUFAHpPUMZ-o1GSmn4F6x6Xw56l1eDDi93lWDPSQDm26dI9DOXqb/exec';
+const APPS_SCRIPT_URL = '여기에_Apps_Script_웹앱_URL을_붙여넣으세요';
 const IMAGE_COMPRESSION_CONFIG = {
   targetDataUrlLength: 260000,
   maxDataUrlLength: 360000,
@@ -2954,7 +2954,6 @@ function bindPatrolHistoryActions() {
   const prevBtn = document.getElementById('patrolPrevWeekBtn');
   const toggleBtn = document.getElementById('patrolPastSearchToggleBtn');
   const searchBtn = document.getElementById('patrolPastSearchBtn');
-  const quickPrevBtn = document.getElementById('patrolQuickPrevBtn');
   const quickSearchBtn = document.getElementById('patrolQuickSearchBtn');
   const quickWriteBtn = document.getElementById('patrolQuickWriteBtn');
   const quickTopBtn = document.getElementById('patrolQuickTopBtn');
@@ -2967,7 +2966,6 @@ function bindPatrolHistoryActions() {
   }
 
   if (prevBtn) prevBtn.addEventListener('click', openPreviousWeek);
-  if (quickPrevBtn) quickPrevBtn.addEventListener('click', openPreviousWeek);
   if (toggleBtn) toggleBtn.addEventListener('click', openPastSearch);
   if (quickSearchBtn) quickSearchBtn.addEventListener('click', openPastSearch);
   if (quickWriteBtn) quickWriteBtn.addEventListener('click', function () {
@@ -3008,6 +3006,7 @@ function openPatrolSearchModal() {
     modal.hidden = false;
     document.body.classList.add('modal-open');
   }
+  loadPatrolRecentHistory();
 }
 
 function closePatrolSearchModal() {
@@ -3205,7 +3204,7 @@ function renderPatrolResultViewer(data, titlePrefix, weekInfo) {
   const copyBtn = document.getElementById('copyPatrolTbmBtn');
   if (copyBtn) copyBtn.addEventListener('click', function () { copyTextToClipboard(tbmText); });
   const printBtn = document.getElementById('printPatrolResultBtn');
-  if (printBtn) printBtn.addEventListener('click', function () { window.print(); });
+  if (printBtn) printBtn.addEventListener('click', function () { printPatrolRecord(rec); });
 }
 
 function groupPatrolResultItems(items) {
@@ -3219,14 +3218,25 @@ function groupPatrolResultItems(items) {
 
 function renderPatrolResultItem(item) {
   const cls = item.result === '미흡' ? 'bad' : (item.result === '해당없음' ? 'na' : 'good');
-  const photos = (item.photoUrls || []).map(function (url, index) {
-    return '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">사진 ' + (index + 1) + '</a>';
+  const imageHtml = renderPatrolPhotoThumbnails(item);
+  const linkHtml = (item.photoUrls || []).map(function (url, index) {
+    return '<a href="' + escapeHtml(url) + '" target="_blank" rel="noopener">원본 보기 ' + (index + 1) + '</a>';
   }).join('');
   return '<div class="patrol-result-item ' + cls + '">' +
     '<div class="patrol-result-item-head"><strong>' + escapeHtml(item.no + '. ' + item.title) + '</strong><span>' + escapeHtml(item.result || '') + '</span></div>' +
     (item.note ? '<p><b>미흡내용</b> ' + escapeHtml(item.note) + '</p>' : '') +
-    (photos ? '<div class="patrol-result-photos"><b>첨부사진</b> ' + photos + '</div>' : '') +
+    (imageHtml || linkHtml ? '<div class="patrol-result-photos"><b>첨부사진</b>' + imageHtml + (linkHtml ? '<div class="patrol-photo-links">' + linkHtml + '</div>' : '') + '</div>' : '') +
     '</div>';
+}
+
+function renderPatrolPhotoThumbnails(item) {
+  const photos = item.photoDataUrls || [];
+  if (!photos.length) return '';
+  return '<div class="patrol-result-photo-grid">' + photos.map(function (photo, index) {
+    const src = photo.dataUrl || photo;
+    const label = photo.label || ('첨부사진 ' + (index + 1));
+    return '<figure><img src="' + escapeHtml(src) + '" alt="' + escapeHtml(label) + '"><figcaption>' + escapeHtml(label) + '</figcaption></figure>';
+  }).join('') + '</div>';
 }
 
 function renderPatrolTbmSummary(insufficientItems, rec) {
@@ -3282,6 +3292,100 @@ function fallbackCopyText(text) {
   try { document.execCommand('copy'); } catch (err) {}
   document.body.removeChild(ta);
   showSubmitModal({ type: 'success', title: '복사 완료', html: 'TBM 공유문구가 복사되었습니다.', confirmText: '확인' });
+}
+
+
+async function loadPatrolRecentHistory() {
+  const box = document.getElementById('patrolRecentHistoryList');
+  if (!box) return;
+  box.innerHTML = '<div class="inline-message pending">최근 점검이력을 불러오는 중입니다...</div>';
+  const basic = getPatrolBasicInfo();
+  try {
+    const data = await jsonpRequest({
+      mode: 'patrolRecentList',
+      storeName: basic.storeName,
+      employeeId: basic.employeeId,
+      limit: 5
+    }, 30000);
+    const rows = (data && data.records) || [];
+    if (!rows.length) {
+      box.innerHTML = '<div class="patrol-empty-result small">최근 점검이력이 없습니다.</div>';
+      return;
+    }
+    box.innerHTML = rows.map(function (row, idx) {
+      return '<button type="button" class="patrol-recent-history-item" data-week-key="' + escapeHtml(row.weekKey || '') + '">' +
+        '<span class="history-main"><b>' + escapeHtml(row.weekLabel || formatPatrolWeekKeyToLabel(row.weekKey) || '') + '</b><em>' + escapeHtml(row.submittedAt || '') + '</em></span>' +
+        '<span class="history-status ' + escapeHtml(row.submitStatusClass || '') + '">' + escapeHtml(row.submitStatus || '') + '</span>' +
+        '<span class="history-summary">미흡 ' + escapeHtml(row.badCount || 0) + '건 · 사진 ' + escapeHtml(row.validPhotos || 0) + '장</span>' +
+      '</button>';
+    }).join('');
+    box.querySelectorAll('[data-week-key]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const weekKey = btn.getAttribute('data-week-key');
+        const label = btn.querySelector('.history-main b');
+        closePatrolSearchModal();
+        loadPatrolResultForWeek(weekKey, '과거 점검결과');
+      });
+    });
+  } catch (err) {
+    box.innerHTML = '<div class="inline-message error">최근 점검이력을 불러오지 못했습니다.<br>' + escapeHtml(err.message || String(err)) + '</div>';
+  }
+}
+
+function printPatrolRecord(rec) {
+  const title = '관리감독자 주간 순회점검표';
+  const items = rec.items || [];
+  const summary = rec.summary || {};
+  const insufficient = items.filter(function (item) { return item.result === '미흡'; });
+  const grouped = groupPatrolResultItems(items);
+  const categoryHtml = Object.keys(grouped).map(function (category) {
+    return '<section class="print-section"><h2>' + escapeHtml(category) + '</h2>' + grouped[category].map(function (item) {
+      const photoHtml = (item.photoDataUrls || []).map(function (photo, idx) {
+        return '<figure><img src="' + escapeHtml(photo.dataUrl || photo) + '" alt="점검사진"><figcaption>' + escapeHtml(photo.label || ('사진 ' + (idx + 1))) + '</figcaption></figure>';
+      }).join('');
+      return '<article class="print-item ' + (item.result === '미흡' ? 'bad' : '') + '">' +
+        '<div class="item-title"><strong>' + escapeHtml(item.no + '. ' + item.title) + '</strong><span>' + escapeHtml(item.result || '') + '</span></div>' +
+        (item.note ? '<p><b>미흡내용</b> ' + escapeHtml(item.note) + '</p>' : '') +
+        (photoHtml ? '<div class="print-photos">' + photoHtml + '</div>' : '') +
+      '</article>';
+    }).join('') + '</section>';
+  }).join('');
+  const tbmHtml = insufficient.length ? '<ol>' + insufficient.map(function (item) {
+    return '<li><b>' + escapeHtml(item.title || '') + '</b><br>미흡내용: ' + escapeHtml(item.note || '미흡내용 확인 필요') + '</li>';
+  }).join('') + '</ol>' : '<p>미흡사항 없음</p>';
+  const html = '<!doctype html><html lang="ko"><head><meta charset="UTF-8"><title>' + title + '</title>' +
+    '<style>' +
+    'body{margin:0;padding:28px;font-family:Malgun Gothic,Arial,sans-serif;color:#111827;background:#fff;}'+
+    '.doc{max-width:920px;margin:0 auto;}'+
+    '.top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #17233f;padding-bottom:16px;margin-bottom:18px;}'+
+    'h1{margin:0;color:#17233f;font-size:28px;} .brand{color:#d71920;font-weight:900;font-size:24px;}'+
+    '.meta{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0 16px;} .meta div{border:1px solid #d8dee8;border-radius:10px;padding:10px 12px;} .meta b{display:block;color:#64748b;font-size:12px;margin-bottom:3px;}'+
+    '.summary{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:14px 0 18px;} .summary div{border:1px solid #d8dee8;border-radius:12px;text-align:center;padding:12px;background:#f8fafc;} .summary strong{display:block;font-size:22px;color:#17233f;} .summary span{font-size:12px;color:#64748b;}'+
+    '.tbm{border:1px solid #d8dee8;border-radius:14px;padding:14px;background:#f8fafc;margin-bottom:16px;} h2{font-size:18px;color:#17233f;margin:0 0 10px;}'+
+    '.print-section{break-inside:avoid;margin-top:18px;} .print-item{border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:8px 0;break-inside:avoid;} .print-item.bad{border-color:#fecaca;background:#fff7f7;}'+
+    '.item-title{display:flex;justify-content:space-between;gap:12px;} .item-title span{font-weight:900;border-radius:999px;padding:4px 9px;background:#eef2ff;color:#17233f;} .print-item.bad .item-title span{background:#fee2e2;color:#991b1b;}'+
+    '.print-photos{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px;} figure{margin:0;} img{width:100%;height:auto;border:1px solid #e5e7eb;border-radius:10px;} figcaption{font-size:12px;color:#64748b;margin-top:4px;}'+
+    '@media print{body{padding:0}.doc{max-width:none}.print-section,.print-item,figure{break-inside:avoid}}'+
+    '</style></head><body><div class="doc">'+
+    '<div class="top"><div><h1>' + title + '</h1><p>' + escapeHtml(rec.weekLabel || formatPatrolWeekKeyToLabel(rec.weekKey) || '') + '</p></div><div class="brand">daiso</div></div>'+
+    '<div class="meta">'+
+      '<div><b>매장명</b>' + escapeHtml(rec.storeName || '') + '</div>'+
+      '<div><b>점검자</b>' + escapeHtml((rec.supervisorName || '') + ' / ' + (rec.employeeId || '')) + '</div>'+
+      '<div><b>제출일시</b>' + escapeHtml(rec.submittedAt || '') + '</div>'+
+      '<div><b>제출상태</b>' + escapeHtml(rec.submitStatus || '') + '</div>'+
+    '</div>'+
+    '<div class="summary"><div><strong>' + (summary.total || 0) + '</strong><span>총 항목</span></div><div><strong>' + (summary.good || 0) + '</strong><span>양호</span></div><div><strong>' + (summary.bad || 0) + '</strong><span>미흡</span></div><div><strong>' + (summary.na || 0) + '</strong><span>해당없음</span></div><div><strong>' + (summary.validPhotos || 0) + '</strong><span>유효사진</span></div></div>'+
+    '<div class="tbm"><h2>TBM 공유용 요약</h2>' + tbmHtml + '</div>'+
+    categoryHtml +
+    '</div><script>window.onload=function(){setTimeout(function(){window.print();},300)};<\/script></body></html>';
+  const w = window.open('', '_blank');
+  if (!w) {
+    showSubmitModal({ type: 'error', title: '팝업 차단', html: '브라우저 팝업 차단을 해제한 뒤 다시 시도해주세요.', confirmText: '확인' });
+    return;
+  }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
 }
 
 function setPatrolResult(type, msg) {
@@ -4543,5 +4647,34 @@ function prefillFirstAppointmentStoreRow() {
   document.addEventListener('click', function (event) {
     var target = event.target && event.target.closest ? event.target.closest('#showAppointmentModuleBtn, [data-nav-module="appointment"], #v34GoAppointmentFromLoginBtn') : null;
     if (target) setTimeout(hideOldAppointmentModeTabs, 30);
+  }, true);
+})();
+
+
+/* =========================================================
+   v38 UX 보완
+   - 선임현황 로딩 오버레이 무한 표시 방지
+   - 선임/해임 화면 진입 시 화면 전환 후 1초 이내 오버레이 자동 해제
+   ========================================================= */
+(function () {
+  function hideLoadingSoon() {
+    if (typeof showLoading === 'function') {
+      setTimeout(function () { showLoading(false); }, 700);
+      setTimeout(function () { showLoading(false); }, 1800);
+      setTimeout(function () { showLoading(false); }, 5000);
+    }
+  }
+  if (!window.__v38AppointmentLoadingGuard && typeof window.switchToAppointmentModule === 'function') {
+    window.__v38AppointmentLoadingGuard = true;
+    var prev = window.switchToAppointmentModule;
+    window.switchToAppointmentModule = function () {
+      var result = prev.apply(this, arguments);
+      hideLoadingSoon();
+      return result;
+    };
+  }
+  document.addEventListener('click', function (event) {
+    var target = event.target && event.target.closest ? event.target.closest('#showAppointmentModuleBtn, [data-nav-module="appointment"], #v34GoAppointmentFromLoginBtn') : null;
+    if (target) hideLoadingSoon();
   }, true);
 })();

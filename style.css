@@ -4467,3 +4467,99 @@ body.v34-minimal #patrolForm .patrol-items-section .section-guide {
 #appointmentModule .v35-status-actions .submit-btn {
   margin-top: 0;
 }
+
+
+/* =========================================================
+   v38 주간순회점검 조회/출력 정리
+   ========================================================= */
+#patrolQuickPrevBtn { display: none !important; }
+.patrol-quick-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.patrol-recent-history-box {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+}
+.patrol-recent-history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  color: #17233f;
+}
+.patrol-recent-history-head strong { font-size: 15px; font-weight: 1000; }
+.patrol-recent-history-head span { color: #64748b; font-size: 12px; font-weight: 800; }
+.patrol-recent-history-list { display: grid; gap: 8px; }
+.patrol-recent-history-item {
+  width: 100%;
+  border: 1px solid #d8dee8;
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.patrol-recent-history-item:active { transform: scale(.99); }
+.patrol-recent-history-item .history-main b {
+  display: block;
+  color: #17233f;
+  font-size: 14px;
+}
+.patrol-recent-history-item .history-main em {
+  display: block;
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+  font-style: normal;
+}
+.history-status {
+  align-self: start;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 900;
+  background: #ecfdf5;
+  color: #166534;
+}
+.history-status.late { background: #fee2e2; color: #991b1b; }
+.history-summary {
+  grid-column: 1 / -1;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+.patrol-result-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.patrol-result-photo-grid figure { margin: 0; }
+.patrol-result-photo-grid img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+.patrol-result-photo-grid figcaption {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.patrol-photo-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+@media (max-width: 720px) {
+  .patrol-recent-history-item { grid-template-columns: 1fr; }
+  .history-status { justify-self: start; }
+  .patrol-result-photo-grid { grid-template-columns: 1fr; }
+}
